@@ -21,3 +21,117 @@
 ::-webkit-scrollbar {
     @apply hidden
 }
+/* FullCalendar custom styles for available and selected days */
+.fc-available-day {
+    background-color: rgba(59, 130, 246, 0.08);
+        /* slightly stronger indigo */
+        border-radius: 8px;
+        cursor: pointer;
+}
+
+.fc-selected-day {
+    position: relative;
+    z-index: 3;
+    }
+    
+    /* Inactive days should appear muted */
+    .fc-daygrid-day-number {
+        color: #6B7280;
+        /* default muted */
+    }
+    
+    .fc-daygrid-day:not(.fc-available-day) {
+        opacity: 0.65;
+}
+
+.fc-selected-day .fc-daygrid-day-number {
+    background: #2563eb;
+        /* stronger blue */
+    color: white;
+    width: 32px;
+        height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.18);
+}
+
+/* Slot card styles */
+.slot-card {
+    border: 1px solid #E6E9F2;
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: white
+}
+
+.slot-time {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #111827
+}
+
+.slot-meta {
+    font-size: 0.85rem;
+    color: #6B7280
+}
+
+.slot-select-btn {
+    padding: 6px 14px;
+    border-radius: 9999px
+}
+/* scroll styles for slot list */
+.max-h-96::-webkit-scrollbar {
+    width: 8px
+}
+
+.max-h-96::-webkit-scrollbar-thumb {
+    background: rgba(107, 114, 128, 0.4);
+    border-radius: 8px
+}
+
+.max-h-96 {
+    scrollbar-width: thin
+}
+
+/* Responsive calendar & slots container adjustments */
+@media (max-width: 640px) {
+    .fc {
+        font-size: 0.85rem;
+    }
+
+    .slot-card {
+        padding: 10px;
+    }
+}
+
+/* Booking confirmation styles */
+.confirmation-icon {
+    width: 72px;
+    height: 72px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+}
+
+/* Make main appointment container responsive and use full available width */
+.appointment-root {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+@media(min-width: 640px) {
+    .appointment-root .doctor-header {
+        display: flex;
+        gap: 16px
+    }
+
+    .appointment-root .booking-section {
+        margin-left: 0
+    }
+}

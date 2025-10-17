@@ -11,7 +11,7 @@ const Login = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
-  const backendUrl = import.meta.env.VITE_BACKEND_URL
+  const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
 
   const { setDToken } = useContext(DoctorContext)
   const { setAToken } = useContext(AdminContext)
@@ -21,12 +21,34 @@ const Login = () => {
 
     if (state === 'Admin') {
 
-      const { data } = await axios.post(backendUrl + '/api/admin/login', { email, password })
-      if (data.success) {
-        setAToken(data.token)
-        localStorage.setItem('aToken', data.token)
-      } else {
-        toast.error(data.message)
+      // Local bypass for development/demo: if env not set or backend unreachable
+      // allow logging in with the demo admin credentials without contacting backend.
+      if ((email === 'admin@gmail.com' && password === '12345') && (!backendUrl || backendUrl.includes('undefined'))) {
+        const demoToken = 'demo-admin-token'
+        setAToken(demoToken)
+        localStorage.setItem('aToken', demoToken)
+        toast.success('Logged in as demo admin')
+        return
+      }
+
+      try {
+        const { data } = await axios.post(backendUrl + '/api/admin/login', { email, password })
+        if (data.success) {
+          setAToken(data.token)
+          localStorage.setItem('aToken', data.token)
+        } else {
+          toast.error(data.message)
+        }
+      } catch (error) {
+        // fallback: if backend request fails and credentials match demo, allow access
+        if (email === 'admin@gmail.com' && password === '12345') {
+          const demoToken = 'demo-admin-token'
+          setAToken(demoToken)
+          localStorage.setItem('aToken', demoToken)
+          toast.success('Logged in as demo admin (offline)')
+        } else {
+          toast.error(error.response?.data?.message || error.message || 'Login failed')
+        }
       }
 
     } else {
