@@ -21,10 +21,6 @@ const connectDB = async () => {
         const opts = {
             serverSelectionTimeoutMS: 30000,
             connectTimeoutMS: 30000,
-            // use the new unified topology
-            // mongoose v6 sets these by default, but be explicit for clarity
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
         }
         await mongoose.connect(uri, opts)
         console.log('MongoDB connection established')
