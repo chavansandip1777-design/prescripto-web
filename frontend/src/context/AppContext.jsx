@@ -10,8 +10,34 @@ const AppContextProvider = (props) => {
     const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
 
     const [doctors, setDoctors] = useState([])
+    const [loadingCount, setLoadingCount] = useState(0)
+    const isLoading = loadingCount > 0
     const [token, setToken] = useState(localStorage.getItem('token') ? localStorage.getItem('token') : '')
     const [userData, setUserData] = useState(false)
+
+    // Global axios interceptors to track in-flight requests and show loaders
+    useEffect(() => {
+        const reqInterceptor = axios.interceptors.request.use(config => {
+            setLoadingCount(c => c + 1)
+            return config
+        }, err => {
+            setLoadingCount(c => Math.max(0, c - 1))
+            return Promise.reject(err)
+        })
+
+        const resInterceptor = axios.interceptors.response.use(resp => {
+            setLoadingCount(c => Math.max(0, c - 1))
+            return resp
+        }, err => {
+            setLoadingCount(c => Math.max(0, c - 1))
+            return Promise.reject(err)
+        })
+
+        return () => {
+            axios.interceptors.request.eject(reqInterceptor)
+            axios.interceptors.response.eject(resInterceptor)
+        }
+    }, [])
 
     // Getting Doctors using API
     const getDoctosData = async () => {
@@ -68,6 +94,7 @@ const AppContextProvider = (props) => {
         backendUrl,
         token, setToken,
         userData, setUserData, loadUserProfileData
+        , isLoading
     }
 
     return (

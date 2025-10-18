@@ -28,12 +28,11 @@ const App = () => {
   return dToken || aToken ? (
     <div className='bg-[#F8F9FD]'>
       <ToastContainer />
-      <Navbar />
+      <Navbar toggleSidebar={toggleSidebar} />
       <div className='admin-page-root'>
         <Sidebar collapsed={sidebarCollapsed} />
         <div className='admin-content'>
-          <Navbar toggleSidebar={toggleSidebar} />
-          {/* moved Navbar inside content so toggle is visible on small screens */}
+          {/* Navbar is rendered once at the top; toggle button will still be available on small screens */}
           <Routes>
             <Route path='/' element={<></>} />
             <Route path='/admin-dashboard' element={<Dashboard />} />

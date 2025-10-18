@@ -8,6 +8,7 @@ import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import axios from 'axios'
 import { toast } from 'react-toastify'
+import Loader from '../components/Loader'
 
 const Appointment = () => {
 
@@ -29,6 +30,7 @@ const Appointment = () => {
     const [patientMobile, setPatientMobile] = useState('')
     const [booking, setBooking] = useState({})
     const [isBooking, setIsBooking] = useState(false)
+    const [isSlotsLoading, setIsSlotsLoading] = useState(false)
 
     const navigate = useNavigate()
 
@@ -38,8 +40,8 @@ const Appointment = () => {
     }
 
     const getAvailableSolts = async () => {
-
         setDocSlots([])
+        setIsSlotsLoading(true)
         try {
             const { data } = await axios.post(backendUrl + '/api/doctor/availability', { docId })
                 if (data.success) {
@@ -101,6 +103,8 @@ const Appointment = () => {
             }
         } catch (error) {
             console.log('Failed to fetch availability', error)
+        } finally {
+            setIsSlotsLoading(false)
         }
 
     }
@@ -160,11 +164,9 @@ const Appointment = () => {
                 } catch (e) { console.warn('Background doctors refresh failed', e) }
                 // redirect to confirmation page with minimal details
                 setBooking(bookingDetails)
-                setIsBooking(false)
                 navigate(`/booking-confirmation?docId=${docId}&slotDate=${slotDate}&slotTime=${slotTime}&name=${encodeURIComponent(patientName)}&phone=${patientMobile}`)
             } else {
                 toast.error(data.message)
-                setIsBooking(false)
             }
 
         } catch (error) {
@@ -197,6 +199,9 @@ const Appointment = () => {
                 console.log('Failed demo booking', e)
             }
             toast.error(error.message || 'Failed to book appointment')
+        } finally {
+            // ensure booking spinner is cleared in all cases
+            setIsBooking(false)
         }
     }
 
@@ -357,46 +362,50 @@ const Appointment = () => {
                                 </div>
                             )}
                             <div className='max-h-96 overflow-y-auto space-y-3 pr-2'>
-                            {(selectedDateKey && availabilityMap[selectedDateKey]) ? (
-                                availabilityMap[selectedDateKey]
-                                // show all slots including 0-seat slots so users can see fully booked times
-                                .filter((it) => typeof it.availableSeats !== 'undefined')
-                                .map((item, index) => (
-                                    <div key={index} className={`slot-card ${slotTime===item.time? 'border-primary shadow-sm':''}`}>
-                                        <div className='flex items-center gap-4'>
-                                            <div className='text-left w-28'>
-                                                <div className='slot-time'>{item.time}</div>
-                                                <div className='slot-meta'>{/* optional meta */}</div>
-                                            </div>
-                                            <div>
-                                                <div className='text-xs text-gray-500'>
-                                                    {(() => {
-                                                        const available = item.availableSeats ?? item.seats ?? 0
-                                                        // avoid mixing ?? with || to keep Babel parser happy
-                                                        const total = (typeof item.totalSeats !== 'undefined') ? item.totalSeats : ((dayMetaMap[selectedDateKey] && dayMetaMap[selectedDateKey].totalSeats) || 0)
-                                                        const booked = (typeof item.bookedSeats !== 'undefined') ? item.bookedSeats : Math.max(0, total - available)
-                                                        return (
-                                                            <>
-                                                                <span className={`inline-block w-2 h-2 rounded-full mr-2 align-middle ${available>0? 'bg-emerald-400':'bg-gray-300'}`}></span>
-                                                                {available} available • {booked} booked • {total} total
-                                                            </>
-                                                        )
-                                                    })()}
+                                {isSlotsLoading ? (
+                                    <div className='flex items-center justify-center py-8'>
+                                        <Loader />
+                                    </div>
+                                ) : selectedDateKey && availabilityMap[selectedDateKey] ? (
+                                    availabilityMap[selectedDateKey]
+                                    // show all slots including 0-seat slots so users can see fully booked times
+                                    .filter((it) => typeof it.availableSeats !== 'undefined')
+                                    .map((item, index) => (
+                                        <div key={index} className={`slot-card ${slotTime===item.time? 'border-primary shadow-sm':''}`}>
+                                            <div className='flex items-center gap-4'>
+                                                <div className='text-left w-28'>
+                                                    <div className='slot-time'>{item.time}</div>
+                                                    <div className='slot-meta'>{/* optional meta */}</div>
+                                                </div>
+                                                <div>
+                                                    <div className='text-xs text-gray-500'>
+                                                        {(() => {
+                                                            const available = item.availableSeats ?? item.seats ?? 0
+                                                            // avoid mixing ?? with || to keep Babel parser happy
+                                                            const total = (typeof item.totalSeats !== 'undefined') ? item.totalSeats : ((dayMetaMap[selectedDateKey] && dayMetaMap[selectedDateKey].totalSeats) || 0)
+                                                            const booked = (typeof item.bookedSeats !== 'undefined') ? item.bookedSeats : Math.max(0, total - available)
+                                                            return (
+                                                                <>
+                                                                    <span className={`inline-block w-2 h-2 rounded-full mr-2 align-middle ${available>0? 'bg-emerald-400':'bg-gray-300'}`}></span>
+                                                                    {available} available • {booked} booked • {total} total
+                                                                </>
+                                                            )
+                                                        })()}
+                                                    </div>
                                                 </div>
                                             </div>
+                                            <div className='flex items-center gap-3'>
+                                                {((item.availableSeats ?? item.seats ?? 0) > 0) ? (
+                                                    <button onClick={() => { setSlotTime(item.time) }} className={`slot-select-btn ${slotTime===item.time? 'bg-primary text-white':'border text-sm'}`}>{(item.availableSeats ?? item.seats ?? 0)} Select</button>
+                                                ) : (
+                                                    <button disabled className='text-sm px-3 py-1 rounded-full bg-gray-100 text-gray-400 border'>Full</button>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className='flex items-center gap-3'>
-                                            {((item.availableSeats ?? item.seats ?? 0) > 0) ? (
-                                                <button onClick={() => { setSlotTime(item.time) }} className={`slot-select-btn ${slotTime===item.time? 'bg-primary text-white':'border text-sm'}`}>{(item.availableSeats ?? item.seats ?? 0)} Select</button>
-                                            ) : (
-                                                <button disabled className='text-sm px-3 py-1 rounded-full bg-gray-100 text-gray-400 border'>Full</button>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))
-                            ) : (
-                                <div className='text-sm text-gray-500'>No slots available for selected day</div>
-                            )}
+                                    ))
+                                ) : (
+                                    <div className='text-sm text-gray-500'>No slots available for selected day</div>
+                                )}
                             </div>
                         </div>
                     </div>
