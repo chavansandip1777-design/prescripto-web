@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Redirecting...</title>
+    <script>
+        // Move the current path into the hash so the SPA router can handle it after index.html loads
+        (function () {
+            var path = location.pathname + location.search + location.hash;
+            // If already index.html, just return
+            if (path === '/' || path.indexOf('/index.html') !== -1) return;
+            location.replace('/#' + encodeURIComponent(path));
+        })();
+    </script>
+</head>
+
+<body></body>
+
+</html>

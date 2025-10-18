@@ -8,7 +8,7 @@ services:
     startCommand: cd backend && npm run start
     envVars:
       # Set these in the Render dashboard (do not commit secrets here)
-      - key: MONGO_URI
+      - key: MONGODB_URI
         value: ""
       - key: JWT_SECRET
         value: ""
