@@ -6,11 +6,26 @@ const BookingConfirmation = () => {
     const { search } = useLocation()
     const params = new URLSearchParams(search)
 
-    const docId = params.get('docId')
-    const slotDate = params.get('slotDate')
-    const slotTime = params.get('slotTime')
-    const name = params.get('name')
-    const phone = params.get('phone')
+    let docId = params.get('docId')
+    let slotDate = params.get('slotDate')
+    let slotTime = params.get('slotTime')
+    let name = params.get('name')
+    let phone = params.get('phone')
+
+    // fallback to sessionStorage persisted booking (if query params absent)
+    if (!docId || !slotDate || !slotTime) {
+        try {
+            const raw = sessionStorage.getItem('last_booking')
+            if (raw) {
+                const b = JSON.parse(raw)
+                docId = docId || b.docId
+                slotDate = slotDate || b.slotDate
+                slotTime = slotTime || b.slotTime
+                name = name || b.name
+                phone = phone || b.phone
+            }
+        } catch (e) { /* ignore */ }
+    }
     const { doctors } = useContext(AppContext)
     const doc = doctors.find(d=>d._id === docId)
 

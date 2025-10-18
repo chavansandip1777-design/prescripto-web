@@ -27,6 +27,8 @@ const Appointment = () => {
     // always show slots with seats >= 1
     const [patientName, setPatientName] = useState('')
     const [patientMobile, setPatientMobile] = useState('')
+    const [booking, setBooking] = useState({})
+    const [isBooking, setIsBooking] = useState(false)
 
     const navigate = useNavigate()
 
@@ -138,17 +140,31 @@ const Appointment = () => {
         }
 
         try {
+            setIsBooking(true)
+            // persist booking details to sessionStorage as a fallback
+            const bookingDetails = { docId, slotDate, slotTime, name: patientName, phone: patientMobile }
+            sessionStorage.setItem('last_booking', JSON.stringify(bookingDetails))
+
             const { data } = await axios.post(backendUrl + '/api/user/book-appointment-guest', { docId, slotDate, slotTime, patientName, patientMobile })
 
             if (data.success) {
                 toast.success(data.message)
-                // refresh availability so UI shows decremented seats
-                await getAvailableSolts()
-                getDoctosData()
+                // Redirect immediately so the user sees confirmation.
+                // Refresh availability and doctors in background; failures there should not block navigation.
+                try {
+                    // start background refresh but don't await it
+                    getAvailableSolts()
+                } catch (e) { console.warn('Background availability refresh failed', e) }
+                try {
+                    if (typeof getDoctosData === 'function') getDoctosData()
+                } catch (e) { console.warn('Background doctors refresh failed', e) }
                 // redirect to confirmation page with minimal details
+                setBooking(bookingDetails)
+                setIsBooking(false)
                 navigate(`/booking-confirmation?docId=${docId}&slotDate=${slotDate}&slotTime=${slotTime}&name=${encodeURIComponent(patientName)}&phone=${patientMobile}`)
             } else {
                 toast.error(data.message)
+                setIsBooking(false)
             }
 
         } catch (error) {
@@ -406,7 +422,9 @@ const Appointment = () => {
                     />
                 </div>
 
-                <button onClick={bookAppointment} className='bg-primary text-white text-sm font-light px-20 py-3 rounded-full my-6'>Book an appointment</button>
+                <button onClick={bookAppointment} disabled={isBooking} className='bg-primary text-white text-sm font-light px-20 py-3 rounded-full my-6'>
+                    {isBooking ? 'Booking...' : 'Book an appointment'}
+                </button>
             </div>
 
             {/* Listing Releated Doctors */}

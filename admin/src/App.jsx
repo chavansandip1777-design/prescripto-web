@@ -1,4 +1,4 @@
-import React, { useContext } from 'react'
+import React, { useContext, useState } from 'react'
 import { DoctorContext } from './context/DoctorContext';
 import { AdminContext } from './context/AdminContext';
 import { Route, Routes } from 'react-router-dom'
@@ -21,14 +21,19 @@ const App = () => {
 
   const { dToken } = useContext(DoctorContext)
   const { aToken } = useContext(AdminContext)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+
+  const toggleSidebar = () => setSidebarCollapsed(s => !s)
 
   return dToken || aToken ? (
     <div className='bg-[#F8F9FD]'>
       <ToastContainer />
       <Navbar />
-      <div className='flex items-start'>
-        <Sidebar />
+      <div className='admin-page-root'>
+        <Sidebar collapsed={sidebarCollapsed} />
         <div className='admin-content'>
+          <Navbar toggleSidebar={toggleSidebar} />
+          {/* moved Navbar inside content so toggle is visible on small screens */}
           <Routes>
             <Route path='/' element={<></>} />
             <Route path='/admin-dashboard' element={<Dashboard />} />
