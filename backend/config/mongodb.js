@@ -17,9 +17,23 @@ const connectDB = async () => {
     mongoose.connection.on('connected', () => console.log("Database Connected"))
 
     try {
-        await mongoose.connect(uri)
+        // Increase server selection timeout to 30s to allow slower network/dns
+        const opts = {
+            serverSelectionTimeoutMS: 30000,
+            connectTimeoutMS: 30000,
+            // use the new unified topology
+            // mongoose v6 sets these by default, but be explicit for clarity
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+        }
+        await mongoose.connect(uri, opts)
+        console.log('MongoDB connection established')
     } catch (err) {
-        console.error('Failed to connect to MongoDB:', err.message)
+        console.error('Failed to connect to MongoDB:', err && err.message ? err.message : err)
+        // include more info for debugging (non-sensitive)
+        if (uri && !uri.startsWith('mongodb://') && !uri.startsWith('mongodb+srv://')) {
+            console.error('MongoDB URI does not start with mongodb:// or mongodb+srv://')
+        }
         throw err
     }
 
