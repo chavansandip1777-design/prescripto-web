@@ -131,6 +131,7 @@ To set up and run this project locally:
    - Create a `.env` file in the root directory and add the following:
      ```env
      MONGO_URI=your_mongodb_connection_string
+  # or MONGODB_URI depending on your host (Render uses MONGODB_URI by convention)
      JWT_SECRET=your_jwt_secret
      STRIPE_API_KEY=your_stripe_api_key
      RAZORPAY_API_KEY=your_razorpay_api_key
