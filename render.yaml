@@ -36,7 +36,7 @@ services:
     publishPath: frontend/dist
     envVars:
       - key: VITE_BACKEND_URL
-        value: "https://prescripto-backend.onrender.com"
+        value: "https://prescripto-web-xa6u.onrender.com"
 
   - type: static_site
     name: prescripto-admin
@@ -47,7 +47,7 @@ services:
     publishPath: admin/dist
     envVars:
       - key: VITE_BACKEND_URL
-        value: "https://prescripto-backend.onrender.com"
+        value: "https://prescripto-web-xa6u.onrender.com"
 
 # Notes:
 # - Replace the placeholder VITE_BACKEND_URL values with your actual backend URL after the backend deploys.
