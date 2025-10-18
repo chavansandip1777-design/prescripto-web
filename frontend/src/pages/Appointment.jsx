@@ -78,7 +78,20 @@ const Appointment = () => {
                         const d = new Date(firstKey)
                         if (!isNaN(d)) firstKey = `${d.getDate()}_${d.getMonth()+1}_${d.getFullYear()}`
                     }
-                    setSelectedDateKey(firstKey)
+                    // ensure the selected key actually exists in availabilityMap (fallback to matching by date)
+                    if (map[firstKey]) setSelectedDateKey(firstKey)
+                    else {
+                        // try to find a matching key by comparing year/month/day
+                        const match = Object.keys(map).find(k => {
+                            const parts = k.split('_').map(Number)
+                            if (parts.length !== 3) return false
+                            const kd = new Date(parts[2], parts[1]-1, parts[0])
+                            const fd = new Date(firstKey)
+                            return kd.getFullYear() === fd.getFullYear() && kd.getMonth() === fd.getMonth() && kd.getDate() === fd.getDate()
+                        })
+                        if (match) setSelectedDateKey(match)
+                        else setSelectedDateKey(firstKey)
+                    }
                 }
                 return
             } else {
@@ -226,9 +239,32 @@ const Appointment = () => {
                                 dateClick={(info) => {
                                     // use the Date object provided by FullCalendar to avoid timezone parsing issues
                                     const d = info.date
-                                    const key = `${d.getDate()}_${d.getMonth()+1}_${d.getFullYear()}`
-                                    if (availabilityMap[key]) setSelectedDateKey(key)
-                                    else setSelectedDateKey(null)
+                                        const key = `${d.getDate()}_${d.getMonth()+1}_${d.getFullYear()}`
+                                        if (availabilityMap[key]) {
+                                            setSelectedDateKey(key)
+                                        } else {
+                                            // fallback 1: try to find a matching availability key by comparing Y/M/D from key parts
+                                            let match = Object.keys(availabilityMap).find(k => {
+                                                const parts = k.split('_').map(Number)
+                                                if (parts.length !== 3) return false
+                                                const kd = new Date(parts[2], parts[1]-1, parts[0])
+                                                return kd.getFullYear() === d.getFullYear() && kd.getMonth() === d.getMonth() && kd.getDate() === d.getDate()
+                                            })
+                                            // fallback 2: try to match by slot datetime inside availabilityMap (robust to timezone shifts)
+                                            if (!match) {
+                                                match = Object.keys(availabilityMap).find(k => {
+                                                    const slots = availabilityMap[k] || []
+                                                    return slots.some(s => {
+                                                        try {
+                                                            const sd = new Date(s.datetime)
+                                                            return sd.getFullYear() === d.getFullYear() && sd.getMonth() === d.getMonth() && sd.getDate() === d.getDate()
+                                                        } catch (e) { return false }
+                                                    })
+                                                })
+                                            }
+                                            if (match) setSelectedDateKey(match)
+                                            else setSelectedDateKey(null)
+                                        }
                                 }}
                                 dayCellClassNames={(arg) => {
                                     const d = arg.date
@@ -261,9 +297,9 @@ const Appointment = () => {
                                             {(() => {
                                                 const meta = dayMetaMap[selectedDateKey] || { totalSeats: 0 }
                                                 const total = meta.totalSeats || 0
-                                                // compute booked as total - sum of available seats across slots
-                                                const availSlots = availabilityMap[selectedDateKey] || []
-                                                const availSum = availSlots.reduce((s,it) => s + (it.seats||0), 0)
+                                                    // compute booked as total - sum of available seats across slots
+                                                    const availSlots = availabilityMap[selectedDateKey] || []
+                                                    const availSum = availSlots.reduce((s,it) => s + (it.availableSeats||0), 0)
                                                 const booked = Math.max(0, total - availSum)
                                                 return `Seats: ${total} total • ${booked} booked • ${availSum} remaining`
                                             })()}
@@ -282,8 +318,8 @@ const Appointment = () => {
                                     {(() => {
                                         const meta = dayMetaMap[selectedDateKey] || { totalSeats: 0 }
                                         const total = meta.totalSeats || 0
-                                        const availSlots = availabilityMap[selectedDateKey] || []
-                                        const availSum = availSlots.reduce((s,it) => s + (it.seats||0), 0)
+                                    const availSlots = availabilityMap[selectedDateKey] || []
+                                    const availSum = availSlots.reduce((s,it) => s + (it.availableSeats||0), 0)
                                         const booked = Math.max(0, total - availSum)
                                         return (
                                             <> 
@@ -308,7 +344,7 @@ const Appointment = () => {
                             {(selectedDateKey && availabilityMap[selectedDateKey]) ? (
                                 availabilityMap[selectedDateKey]
                                 // show all slots including 0-seat slots so users can see fully booked times
-                                .filter((it) => typeof it.seats !== 'undefined')
+                                .filter((it) => typeof it.availableSeats !== 'undefined')
                                 .map((item, index) => (
                                     <div key={index} className={`slot-card ${slotTime===item.time? 'border-primary shadow-sm':''}`}>
                                         <div className='flex items-center gap-4'>

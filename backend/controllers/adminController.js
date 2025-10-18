@@ -417,7 +417,8 @@ export {
     getDoctor,
     adminDashboard,
     createAvailability,
-    getSettings, updateSettings
+    getSettings, updateSettings,
+    updateDoctor
 }
 
 // Admin: update doctor endpoint (allows image upload)
