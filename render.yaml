@@ -1,0 +1,55 @@
+services:
+  - type: web
+    name: prescripto-backend
+    env: node
+    branch: main
+    plan: free
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm run start
+    envVars:
+      # Set these in the Render dashboard (do not commit secrets here)
+      - key: MONGO_URI
+        value: ""
+      - key: JWT_SECRET
+        value: ""
+      - key: CLOUDINARY_API_KEY
+        value: ""
+      - key: CLOUDINARY_API_SECRET
+        value: ""
+      - key: CLOUDINARY_CLOUD_NAME
+        value: ""
+      - key: STRIPE_SECRET_KEY
+        value: ""
+      - key: RAZORPAY_KEY_ID
+        value: ""
+      - key: RAZORPAY_KEY_SECRET
+        value: ""
+      - key: GOOGLE_CALENDAR_ID
+        value: ""
+
+  - type: static_site
+    name: prescripto-frontend
+    env: node
+    branch: main
+    plan: free
+    buildCommand: cd frontend && npm ci && npm run build
+    publishPath: frontend/dist
+    envVars:
+      - key: VITE_BACKEND_URL
+        value: "https://prescripto-backend.onrender.com"
+
+  - type: static_site
+    name: prescripto-admin
+    env: node
+    branch: main
+    plan: free
+    buildCommand: cd admin && npm ci && npm run build
+    publishPath: admin/dist
+    envVars:
+      - key: VITE_BACKEND_URL
+        value: "https://prescripto-backend.onrender.com"
+
+# Notes:
+# - Replace the placeholder VITE_BACKEND_URL values with your actual backend URL after the backend deploys.
+# - For secure secrets (MONGO_URI, JWT_SECRET, API keys), set them in the Render dashboard for the backend service (do NOT commit secrets to the repository).
+# - After pushing this file to GitHub, connect the repository to Render and create services from this manifest or via the Render UI.
