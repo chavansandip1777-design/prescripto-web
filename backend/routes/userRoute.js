@@ -1,5 +1,9 @@
 import express from 'express';
+<<<<<<< HEAD
 import { loginUser, registerUser, getProfile, updateProfile, bookAppointment, bookAppointmentGuest, listAppointment, cancelAppointment, paymentRazorpay, verifyRazorpay, paymentStripe, verifyStripe } from '../controllers/userController.js';
+=======
+import { loginUser, registerUser, getProfile, updateProfile, bookAppointment, bookAppointmentGuest, listAppointment, cancelAppointment, paymentRazorpay, verifyRazorpay, paymentStripe, verifyStripe, bookAvailabilityDebug } from '../controllers/userController.js';
+>>>>>>> 2554fc4 (add floder)
 import upload from '../middleware/multer.js';
 import authUser from '../middleware/authUser.js';
 const userRouter = express.Router();
@@ -10,6 +14,10 @@ userRouter.get("/get-profile", authUser, getProfile)
 userRouter.post("/update-profile", upload.single('image'), authUser, updateProfile)
 userRouter.post("/book-appointment", authUser, bookAppointment)
 userRouter.post("/book-appointment-guest", bookAppointmentGuest)
+<<<<<<< HEAD
+=======
+userRouter.post("/book-availability-debug", bookAvailabilityDebug)
+>>>>>>> 2554fc4 (add floder)
 userRouter.get("/appointments", authUser, listAppointment)
 userRouter.post("/cancel-appointment", authUser, cancelAppointment)
 userRouter.post("/payment-razorpay", authUser, paymentRazorpay)

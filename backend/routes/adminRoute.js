@@ -1,5 +1,9 @@
 import express from 'express';
+<<<<<<< HEAD
 import { loginAdmin, appointmentsAdmin, appointmentCancel, addDoctor, allDoctors, adminDashboard, getDoctor, createAvailability, updateDoctor, getSettings, updateSettings } from '../controllers/adminController.js';
+=======
+import { loginAdmin, appointmentsAdmin, appointmentCancel, addDoctor, allDoctors, adminDashboard, getSettings, updateSettings, createAvailability, updateDoctor, getDoctor } from '../controllers/adminController.js';
+>>>>>>> 2554fc4 (add floder)
 import { changeAvailablity } from '../controllers/doctorController.js';
 import authAdmin from '../middleware/authAdmin.js';
 import upload from '../middleware/multer.js';

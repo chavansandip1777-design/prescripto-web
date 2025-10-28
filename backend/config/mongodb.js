@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 
 const connectDB = async () => {
+<<<<<<< HEAD
     // support either MONGODB_URI or MONGO_URI (some platforms use different names)
     const raw = process.env.MONGODB_URI || process.env.MONGO_URI || ''
     if (!raw) {
@@ -32,11 +33,20 @@ const connectDB = async () => {
         }
         throw err
     }
+=======
+
+    mongoose.connection.on('connected', () => console.log("Database Connected"))
+    await mongoose.connect(`${process.env.MONGODB_URI}/prescripto`)
+>>>>>>> 2554fc4 (add floder)
 
 }
 
 export default connectDB;
 
+<<<<<<< HEAD
 // Note: If you see a MongoParseError complaining about the scheme, verify that
 // your connection string starts with "mongodb://" or "mongodb+srv://" and that
 // you set the correct env var name in your hosting provider (MONGODB_URI or MONGO_URI).
+=======
+// Do not use '@' symbol in your databse user's password else it will show an error.
+>>>>>>> 2554fc4 (add floder)

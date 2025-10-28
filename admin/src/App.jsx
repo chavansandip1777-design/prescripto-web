@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import React, { useContext, useState } from 'react'
+=======
+import React, { useContext } from 'react'
+>>>>>>> 2554fc4 (add floder)
 import { DoctorContext } from './context/DoctorContext';
 import { AdminContext } from './context/AdminContext';
 import { Route, Routes } from 'react-router-dom'
@@ -21,13 +25,17 @@ const App = () => {
 
   const { dToken } = useContext(DoctorContext)
   const { aToken } = useContext(AdminContext)
+<<<<<<< HEAD
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   const toggleSidebar = () => setSidebarCollapsed(s => !s)
+=======
+>>>>>>> 2554fc4 (add floder)
 
   return dToken || aToken ? (
     <div className='bg-[#F8F9FD]'>
       <ToastContainer />
+<<<<<<< HEAD
       <Navbar toggleSidebar={toggleSidebar} />
       <div className='admin-page-root'>
         <Sidebar collapsed={sidebarCollapsed} />
@@ -46,6 +54,23 @@ const App = () => {
             <Route path='/doctor-profile' element={<DoctorProfile />} />
           </Routes>
         </div>
+=======
+      <Navbar />
+      <div className='flex items-start'>
+        <Sidebar />
+        <Routes>
+          <Route path='/' element={<></>} />
+          <Route path='/admin-dashboard' element={<Dashboard />} />
+          <Route path='/all-appointments' element={<AllAppointments />} />
+          <Route path='/add-doctor' element={<AddDoctor />} />
+          <Route path='/doctor-list' element={<DoctorsList />} />
+          <Route path='/settings' element={<Settings />} />
+          <Route path='/availability-config' element={<AvailabilityConfig />} />
+          <Route path='/doctor-dashboard' element={<DoctorDashboard />} />
+          <Route path='/doctor-appointments' element={<DoctorAppointments />} />
+          <Route path='/doctor-profile' element={<DoctorProfile />} />
+        </Routes>
+>>>>>>> 2554fc4 (add floder)
       </div>
     </div>
   ) : (

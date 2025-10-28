@@ -6,6 +6,7 @@ const BookingConfirmation = () => {
     const { search } = useLocation()
     const params = new URLSearchParams(search)
 
+<<<<<<< HEAD
     let docId = params.get('docId')
     let slotDate = params.get('slotDate')
     let slotTime = params.get('slotTime')
@@ -26,6 +27,13 @@ const BookingConfirmation = () => {
             }
         } catch (e) { /* ignore */ }
     }
+=======
+    const docId = params.get('docId')
+    const slotDate = params.get('slotDate')
+    const slotTime = params.get('slotTime')
+    const name = params.get('name')
+    const phone = params.get('phone')
+>>>>>>> 2554fc4 (add floder)
     const { doctors } = useContext(AppContext)
     const doc = doctors.find(d=>d._id === docId)
 

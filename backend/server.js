@@ -6,8 +6,11 @@ import connectCloudinary from "./config/cloudinary.js"
 import userRouter from "./routes/userRoute.js"
 import doctorRouter from "./routes/doctorRoute.js"
 import adminRouter from "./routes/adminRoute.js"
+<<<<<<< HEAD
 import path from 'path'
 import { fileURLToPath } from 'url'
+=======
+>>>>>>> 2554fc4 (add floder)
 
 // app config
 const app = express()
@@ -24,6 +27,7 @@ app.use("/api/user", userRouter)
 app.use("/api/admin", adminRouter)
 app.use("/api/doctor", doctorRouter)
 
+<<<<<<< HEAD
 // Serve static frontend and admin builds if they exist (useful when deploying via a single web service)
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -51,6 +55,8 @@ app.get('*', (req, res, next) => {
   }
 })
 
+=======
+>>>>>>> 2554fc4 (add floder)
 app.get("/", (req, res) => {
   res.send("API Working")
 });

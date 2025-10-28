@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import React, { useContext } from 'react'
+=======
+import React from 'react'
+>>>>>>> 2554fc4 (add floder)
 import Navbar from './components/Navbar'
 import { Routes, Route } from 'react-router-dom'
 import Home from './pages/Home'
@@ -14,6 +18,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Verify from './pages/Verify'
 import BookingConfirmation from './pages/BookingConfirmation'
+<<<<<<< HEAD
 import { AppContext } from './context/AppContext'
 import Loader from './components/Loader'
 
@@ -23,6 +28,12 @@ const App = () => {
   return (
     <div className='mx-4 sm:mx-[10%]'>
       {isLoading && <Loader full />}
+=======
+
+const App = () => {
+  return (
+    <div className='mx-4 sm:mx-[10%]'>
+>>>>>>> 2554fc4 (add floder)
       <ToastContainer />
       <Navbar />
       <Routes>

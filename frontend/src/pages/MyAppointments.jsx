@@ -16,12 +16,22 @@ const MyAppointments = () => {
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
     // Function to format the date eg. ( 20_01_2000 => 20 Jan 2000 )
+<<<<<<< HEAD
     // Stored slotDate uses 1-based month (e.g. 10 for October), so subtract 1 when indexing
     const slotDateFormat = (slotDate) => {
         const dateArray = slotDate.split('_')
         const monthIndex = Number(dateArray[1]) - 1
         const monthName = months[monthIndex] || months[0]
         return dateArray[0] + " " + monthName + " " + dateArray[2]
+=======
+    const slotDateFormat = (slotDate) => {
+        if (!slotDate || typeof slotDate !== 'string' || !slotDate.includes('_')) return slotDate
+        const dateArray = slotDate.split('_')
+        const day = dateArray[0]
+        const monthIndex = Math.max(0, Math.min(11, Number(dateArray[1]) - 1))
+        const year = dateArray[2]
+        return `${day} ${months[monthIndex]} ${year}`
+>>>>>>> 2554fc4 (add floder)
     }
 
     // Getting User Appointments Data Using API

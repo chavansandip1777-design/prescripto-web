@@ -222,6 +222,27 @@ const bookAppointment = async (req, res) => {
         // normalize slotTime to the same format used in getAvailability (lowercase am/pm)
         const normalizedSlotTime = slotTime && typeof slotTime === 'string' ? slotTime.toLowerCase() : slotTime
         const path = `slots_booked.${slotDateKey}.${normalizedSlotTime}`
+<<<<<<< HEAD
+=======
+
+        // Compute authoritative booked count from appointments collection to avoid
+        // stale/misaligned `doctor.slots_booked` values. If appointment count already
+        // reached allocation, return not available.
+        const slotDateCandidates = [slotDateKey]
+        try {
+            if (availability && availability.date && !slotDateCandidates.includes(availability.date)) slotDateCandidates.push(availability.date)
+            const isoFromCanonical = new Date((availability && availability.date && availability.date.includes('_')) ? availability.date.split('_').reverse().join('-') : slotDateKey).toISOString()
+            if (!slotDateCandidates.includes(isoFromCanonical)) slotDateCandidates.push(isoFromCanonical)
+        } catch (e) {
+            // ignore
+        }
+
+        const bookedCount = await appointmentModel.countDocuments({ docId, slotDate: { $in: slotDateCandidates }, slotTime: normalizedSlotTime, cancelled: { $ne: true } })
+        if (bookedCount >= seatsAllocatedForSlot) {
+            return res.json({ success: false, message: 'Slot Not Available' })
+        }
+
+>>>>>>> 2554fc4 (add floder)
         const filter = {
             _id: docId,
             $or: [
@@ -231,7 +252,11 @@ const bookAppointment = async (req, res) => {
         }
 
         console.log('BOOKING DEBUG path=', path, 'seatsAllocatedForSlot=', seatsAllocatedForSlot, 'slotDateKey=', slotDateKey, 'normalizedSlotTime=', normalizedSlotTime)
+<<<<<<< HEAD
         console.log('BOOKING DEBUG filter=', JSON.stringify(filter))
+=======
+        console.log('BOOKING DEBUG filter=', JSON.stringify(filter), 'bookedCount=', bookedCount)
+>>>>>>> 2554fc4 (add floder)
         const updatedDoc = await doctorModel.findOneAndUpdate(filter, { $inc: { [path]: 1 } }, { new: true })
         if (!updatedDoc) {
             return res.json({ success: false, message: 'Slot Not Available' })
@@ -511,6 +536,24 @@ const bookAppointmentGuest = async (req, res) => {
         }
 
         const normalizedSlotTime = slotTime && typeof slotTime === 'string' ? slotTime.toLowerCase() : slotTime
+<<<<<<< HEAD
+=======
+        // Ensure doctor.slots_booked is consistent with actual appointments
+        try {
+            const appointmentCount = await appointmentModel.countDocuments({ docId, slotDate: { $in: [slotDateKey, availability ? availability.date : slotDateKey] }, slotTime: normalizedSlotTime, cancelled: { $ne: true } })
+            const currentBooked = (slots_booked && slots_booked[slotDateKey] && typeof slots_booked[slotDateKey][normalizedSlotTime] !== 'undefined') ? slots_booked[slotDateKey][normalizedSlotTime] : undefined
+            if (typeof currentBooked === 'undefined' || currentBooked !== appointmentCount) {
+                // sync the doctor's counter to appointment count to repair stale data
+                await doctorModel.findByIdAndUpdate(docId, { $set: { [`slots_booked.${slotDateKey}.${normalizedSlotTime}`]: appointmentCount } })
+                // update local copy for this request
+                slots_booked = slots_booked || {}
+                slots_booked[slotDateKey] = slots_booked[slotDateKey] || {}
+                slots_booked[slotDateKey][normalizedSlotTime] = appointmentCount
+            }
+        } catch (err) {
+            console.log('Error syncing slots_booked with appointments:', err)
+        }
+>>>>>>> 2554fc4 (add floder)
         const path = `slots_booked.${slotDateKey}.${normalizedSlotTime}`
         const filter = {
             _id: docId,
@@ -522,8 +565,23 @@ const bookAppointmentGuest = async (req, res) => {
 
         console.log('BOOKING DEBUG path=', path, 'seatsAllocatedForSlot=', seatsAllocatedForSlot, 'slotDateKey=', slotDateKey, 'normalizedSlotTime=', normalizedSlotTime)
         console.log('BOOKING DEBUG filter=', JSON.stringify(filter))
+<<<<<<< HEAD
         const updatedDoc = await doctorModel.findOneAndUpdate(filter, { $inc: { [path]: 1 } }, { new: true })
         if (!updatedDoc) return res.json({ success: false, message: 'Slot Not Available' })
+=======
+        // Use appointmentModel as the source of truth to decide availability, then increment doctor's counter.
+        const appointmentCountNow = await appointmentModel.countDocuments({ docId, slotDate: { $in: [slotDateKey, availability ? availability.date : slotDateKey] }, slotTime: normalizedSlotTime, cancelled: { $ne: true } })
+        if (appointmentCountNow >= seatsAllocatedForSlot) {
+            return res.json({ success: false, message: 'Slot Not Available' })
+        }
+        // increment doctor's counter (no complex atomic filter) to reflect this booking
+        try {
+            await doctorModel.findByIdAndUpdate(docId, { $inc: { [path]: 1 } })
+        } catch (err) {
+            console.log('Error incrementing doctor slots_booked counter:', err)
+            return res.json({ success: false, message: 'Slot Not Available' })
+        }
+>>>>>>> 2554fc4 (add floder)
 
         const guestUserData = { name: patientName, phone: patientMobile, isGuest: true }
 
@@ -561,6 +619,69 @@ const bookAppointmentGuest = async (req, res) => {
     }
 }
 
+<<<<<<< HEAD
+=======
+// Debug helper: return computed availability and counters for a doc/date/time (no DB writes)
+const bookAvailabilityDebug = async (req, res) => {
+    try {
+        const { docId, slotDate, slotTime } = req.body
+        const docData = await doctorModel.findById(docId).select('-password')
+        const result = { docFound: !!docData, docAvailable: docData ? !!docData.available : false }
+
+        let slotDateKey = normalizeSlotDateKey(slotDate)
+        let availability = await availabilityModel.findOne({ docId, date: slotDateKey })
+        if (availability) slotDateKey = normalizeSlotDateKey(availability.date)
+
+        result.slotDateKey = slotDateKey
+
+        if (!availability) {
+            result.availability = null
+            return res.json({ success: true, debug: result })
+        }
+
+        // build slotsTimes and formattedTimes
+        const dateObjParts = availability.date.split('_').map(Number)
+        const dateObj = new Date(dateObjParts[2], dateObjParts[1] - 1, dateObjParts[0])
+        const slotDuration = availability.slotDurationMinutes
+        let cursor = new Date(dateObj)
+        cursor.setHours(availability.startHour, 0, 0, 0)
+        const endTime = new Date(dateObj)
+        endTime.setHours(availability.endHour, 0, 0, 0)
+        const slotsTimes = []
+        while (cursor < endTime) {
+            slotsTimes.push(new Date(cursor))
+            cursor = new Date(cursor.getTime() + slotDuration * 60 * 1000)
+        }
+        const formatTime = (dt) => new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }).format(dt).toLowerCase()
+        const formattedTimes = slotsTimes.map(t => formatTime(t))
+        result.formattedTimesSample = formattedTimes.slice(-10)
+
+        const normalizedSlotTime = slotTime && typeof slotTime === 'string' ? slotTime.toLowerCase() : slotTime
+        const idx = formattedTimes.findIndex(t => t === normalizedSlotTime)
+        result.idx = idx
+
+        const S = slotsTimes.length
+        const totalSeats = Number(availability.totalSlots) || 0
+        const base = S > 0 ? Math.floor(totalSeats / S) : 0
+        const remainder = S > 0 ? totalSeats % S : 0
+        result.seatsAllocatedForSlot = base + (idx < remainder ? 1 : 0)
+
+        const slotDateCandidates = [slotDateKey]
+        if (availability && availability.date && !slotDateCandidates.includes(availability.date)) slotDateCandidates.push(availability.date)
+        const bookedCount = await appointmentModel.countDocuments({ docId, slotDate: { $in: slotDateCandidates }, slotTime: normalizedSlotTime, cancelled: { $ne: true } })
+        result.bookedCount = bookedCount
+
+        const slots_booked_val = docData && docData.slots_booked && docData.slots_booked[slotDateKey] ? docData.slots_booked[slotDateKey][normalizedSlotTime] : undefined
+        result.slots_booked_value = slots_booked_val
+
+        return res.json({ success: true, debug: result })
+    } catch (err) {
+        console.log('bookAvailabilityDebug error', err)
+        return res.json({ success: false, message: err.message })
+    }
+}
+
+>>>>>>> 2554fc4 (add floder)
 export {
     loginUser,
     registerUser,
@@ -568,6 +689,10 @@ export {
     updateProfile,
     bookAppointment,
     bookAppointmentGuest,
+<<<<<<< HEAD
+=======
+    bookAvailabilityDebug,
+>>>>>>> 2554fc4 (add floder)
     listAppointment,
     cancelAppointment,
     paymentRazorpay,

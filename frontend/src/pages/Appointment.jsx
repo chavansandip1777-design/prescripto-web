@@ -8,7 +8,10 @@ import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import axios from 'axios'
 import { toast } from 'react-toastify'
+<<<<<<< HEAD
 import Loader from '../components/Loader'
+=======
+>>>>>>> 2554fc4 (add floder)
 
 const Appointment = () => {
 
@@ -28,9 +31,12 @@ const Appointment = () => {
     // always show slots with seats >= 1
     const [patientName, setPatientName] = useState('')
     const [patientMobile, setPatientMobile] = useState('')
+<<<<<<< HEAD
     const [booking, setBooking] = useState({})
     const [isBooking, setIsBooking] = useState(false)
     const [isSlotsLoading, setIsSlotsLoading] = useState(false)
+=======
+>>>>>>> 2554fc4 (add floder)
 
     const navigate = useNavigate()
 
@@ -40,8 +46,13 @@ const Appointment = () => {
     }
 
     const getAvailableSolts = async () => {
+<<<<<<< HEAD
         setDocSlots([])
         setIsSlotsLoading(true)
+=======
+
+        setDocSlots([])
+>>>>>>> 2554fc4 (add floder)
         try {
             const { data } = await axios.post(backendUrl + '/api/doctor/availability', { docId })
                 if (data.success) {
@@ -62,7 +73,12 @@ const Appointment = () => {
                         const available = typeof s.availableSeats !== 'undefined' ? s.availableSeats : (s.seats || 0)
                         const totalForSlot = typeof s.totalSeats !== 'undefined' ? s.totalSeats : (item.totalSeats || 0)
                         const bookedForSlot = typeof s.bookedSeats !== 'undefined' ? s.bookedSeats : Math.max(0, totalForSlot - available)
+<<<<<<< HEAD
                         return ({ ...s, datetime: new Date(s.datetime), availableSeats: available, totalSeats: totalForSlot, bookedSeats: bookedForSlot })
+=======
+                        // provide backward-compatible `seats` property used elsewhere in the UI
+                        return ({ ...s, datetime: new Date(s.datetime), availableSeats: available, seats: available, totalSeats: totalForSlot, bookedSeats: bookedForSlot })
+>>>>>>> 2554fc4 (add floder)
                     })
                     map[key] = slots
                     rawMap[key] = item.date
@@ -82,6 +98,7 @@ const Appointment = () => {
                         const d = new Date(firstKey)
                         if (!isNaN(d)) firstKey = `${d.getDate()}_${d.getMonth()+1}_${d.getFullYear()}`
                     }
+<<<<<<< HEAD
                     // ensure the selected key actually exists in availabilityMap (fallback to matching by date)
                     if (map[firstKey]) setSelectedDateKey(firstKey)
                     else {
@@ -96,6 +113,9 @@ const Appointment = () => {
                         if (match) setSelectedDateKey(match)
                         else setSelectedDateKey(firstKey)
                     }
+=======
+                    setSelectedDateKey(firstKey)
+>>>>>>> 2554fc4 (add floder)
                 }
                 return
             } else {
@@ -103,8 +123,11 @@ const Appointment = () => {
             }
         } catch (error) {
             console.log('Failed to fetch availability', error)
+<<<<<<< HEAD
         } finally {
             setIsSlotsLoading(false)
+=======
+>>>>>>> 2554fc4 (add floder)
         }
 
     }
@@ -144,15 +167,19 @@ const Appointment = () => {
         }
 
         try {
+<<<<<<< HEAD
             setIsBooking(true)
             // persist booking details to sessionStorage as a fallback
             const bookingDetails = { docId, slotDate, slotTime, name: patientName, phone: patientMobile }
             sessionStorage.setItem('last_booking', JSON.stringify(bookingDetails))
 
+=======
+>>>>>>> 2554fc4 (add floder)
             const { data } = await axios.post(backendUrl + '/api/user/book-appointment-guest', { docId, slotDate, slotTime, patientName, patientMobile })
 
             if (data.success) {
                 toast.success(data.message)
+<<<<<<< HEAD
                 // Redirect immediately so the user sees confirmation.
                 // Refresh availability and doctors in background; failures there should not block navigation.
                 try {
@@ -164,6 +191,12 @@ const Appointment = () => {
                 } catch (e) { console.warn('Background doctors refresh failed', e) }
                 // redirect to confirmation page with minimal details
                 setBooking(bookingDetails)
+=======
+                // refresh availability so UI shows decremented seats
+                await getAvailableSolts()
+                getDoctosData()
+                // redirect to confirmation page with minimal details
+>>>>>>> 2554fc4 (add floder)
                 navigate(`/booking-confirmation?docId=${docId}&slotDate=${slotDate}&slotTime=${slotTime}&name=${encodeURIComponent(patientName)}&phone=${patientMobile}`)
             } else {
                 toast.error(data.message)
@@ -199,9 +232,12 @@ const Appointment = () => {
                 console.log('Failed demo booking', e)
             }
             toast.error(error.message || 'Failed to book appointment')
+<<<<<<< HEAD
         } finally {
             // ensure booking spinner is cleared in all cases
             setIsBooking(false)
+=======
+>>>>>>> 2554fc4 (add floder)
         }
     }
 
@@ -260,6 +296,7 @@ const Appointment = () => {
                                 dateClick={(info) => {
                                     // use the Date object provided by FullCalendar to avoid timezone parsing issues
                                     const d = info.date
+<<<<<<< HEAD
                                         const key = `${d.getDate()}_${d.getMonth()+1}_${d.getFullYear()}`
                                         if (availabilityMap[key]) {
                                             setSelectedDateKey(key)
@@ -286,6 +323,11 @@ const Appointment = () => {
                                             if (match) setSelectedDateKey(match)
                                             else setSelectedDateKey(null)
                                         }
+=======
+                                    const key = `${d.getDate()}_${d.getMonth()+1}_${d.getFullYear()}`
+                                    if (availabilityMap[key]) setSelectedDateKey(key)
+                                    else setSelectedDateKey(null)
+>>>>>>> 2554fc4 (add floder)
                                 }}
                                 dayCellClassNames={(arg) => {
                                     const d = arg.date
@@ -318,9 +360,15 @@ const Appointment = () => {
                                             {(() => {
                                                 const meta = dayMetaMap[selectedDateKey] || { totalSeats: 0 }
                                                 const total = meta.totalSeats || 0
+<<<<<<< HEAD
                                                     // compute booked as total - sum of available seats across slots
                                                     const availSlots = availabilityMap[selectedDateKey] || []
                                                     const availSum = availSlots.reduce((s,it) => s + (it.availableSeats||0), 0)
+=======
+                                                // compute booked as total - sum of available seats across slots
+                                                const availSlots = availabilityMap[selectedDateKey] || []
+                                                const availSum = availSlots.reduce((s,it) => s + (it.seats||0), 0)
+>>>>>>> 2554fc4 (add floder)
                                                 const booked = Math.max(0, total - availSum)
                                                 return `Seats: ${total} total • ${booked} booked • ${availSum} remaining`
                                             })()}
@@ -339,8 +387,13 @@ const Appointment = () => {
                                     {(() => {
                                         const meta = dayMetaMap[selectedDateKey] || { totalSeats: 0 }
                                         const total = meta.totalSeats || 0
+<<<<<<< HEAD
                                     const availSlots = availabilityMap[selectedDateKey] || []
                                     const availSum = availSlots.reduce((s,it) => s + (it.availableSeats||0), 0)
+=======
+                                        const availSlots = availabilityMap[selectedDateKey] || []
+                                        const availSum = availSlots.reduce((s,it) => s + (it.seats||0), 0)
+>>>>>>> 2554fc4 (add floder)
                                         const booked = Math.max(0, total - availSum)
                                         return (
                                             <> 
@@ -362,6 +415,7 @@ const Appointment = () => {
                                 </div>
                             )}
                             <div className='max-h-96 overflow-y-auto space-y-3 pr-2'>
+<<<<<<< HEAD
                                 {isSlotsLoading ? (
                                     <div className='flex items-center justify-center py-8'>
                                         <Loader />
@@ -406,6 +460,49 @@ const Appointment = () => {
                                 ) : (
                                     <div className='text-sm text-gray-500'>No slots available for selected day</div>
                                 )}
+=======
+                            {(selectedDateKey && availabilityMap[selectedDateKey]) ? (
+                                // Show all slots returned by the backend (don't filter out entries
+                                // that may temporarily lack a `seats` field) — rendering will
+                                // still show `Full` when availableSeats/seats are 0.
+                                availabilityMap[selectedDateKey]
+                                .map((item, index) => (
+                                    <div key={index} className={`slot-card ${slotTime===item.time? 'border-primary shadow-sm':''}`}>
+                                        <div className='flex items-center gap-4'>
+                                            <div className='text-left w-28'>
+                                                <div className='slot-time'>{item.time}</div>
+                                                <div className='slot-meta'>{/* optional meta */}</div>
+                                            </div>
+                                            <div>
+                                                <div className='text-xs text-gray-500'>
+                                                    {(() => {
+                                                        const available = item.availableSeats ?? item.seats ?? 0
+                                                        // avoid mixing ?? with || to keep Babel parser happy
+                                                        const total = (typeof item.totalSeats !== 'undefined') ? item.totalSeats : ((dayMetaMap[selectedDateKey] && dayMetaMap[selectedDateKey].totalSeats) || 0)
+                                                        const booked = (typeof item.bookedSeats !== 'undefined') ? item.bookedSeats : Math.max(0, total - available)
+                                                        return (
+                                                            <>
+                                                                <span className={`inline-block w-2 h-2 rounded-full mr-2 align-middle ${available>0? 'bg-emerald-400':'bg-gray-300'}`}></span>
+                                                                {available} available • {booked} booked • {total} total
+                                                            </>
+                                                        )
+                                                    })()}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className='flex items-center gap-3'>
+                                            {((item.availableSeats ?? item.seats ?? 0) > 0) ? (
+                                                <button onClick={() => { setSlotTime(item.time) }} className={`slot-select-btn ${slotTime===item.time? 'bg-primary text-white':'border text-sm'}`}>{(item.availableSeats ?? item.seats ?? 0)} Select</button>
+                                            ) : (
+                                                <button disabled className='text-sm px-3 py-1 rounded-full bg-gray-100 text-gray-400 border'>Full</button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className='text-sm text-gray-500'>No slots available for selected day</div>
+                            )}
+>>>>>>> 2554fc4 (add floder)
                             </div>
                         </div>
                     </div>
@@ -431,9 +528,13 @@ const Appointment = () => {
                     />
                 </div>
 
+<<<<<<< HEAD
                 <button onClick={bookAppointment} disabled={isBooking} className='bg-primary text-white text-sm font-light px-20 py-3 rounded-full my-6'>
                     {isBooking ? 'Booking...' : 'Book an appointment'}
                 </button>
+=======
+                <button onClick={bookAppointment} className='bg-primary text-white text-sm font-light px-20 py-3 rounded-full my-6'>Book an appointment</button>
+>>>>>>> 2554fc4 (add floder)
             </div>
 
             {/* Listing Releated Doctors */}

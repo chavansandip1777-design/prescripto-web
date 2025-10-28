@@ -57,6 +57,10 @@ const appointmentCancel = async (req, res) => {
         res.json({ success: false, message: error.message })
     }
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 2554fc4 (add floder)
 }
 
 // API for adding Doctor
@@ -421,6 +425,10 @@ export {
     updateDoctor
 }
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 2554fc4 (add floder)
 // Admin: update doctor endpoint (allows image upload)
 const updateDoctor = async (req, res) => {
     try {

@@ -9,6 +9,7 @@
 
 ::-webkit-scrollbar{
     display: none;
+<<<<<<< HEAD
 }
 /* Admin page layout: content should expand to fill available space while the sidebar stays fixed width on larger screens */
 .admin-content {
@@ -35,4 +36,6 @@
     min-height: 100vh;
     display: flex;
     flex-direction: row;
+=======
+>>>>>>> 2554fc4 (add floder)
 }
