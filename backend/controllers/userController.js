@@ -232,9 +232,40 @@ const bookAppointment = async (req, res) => {
 
         console.log('BOOKING DEBUG path=', path, 'seatsAllocatedForSlot=', seatsAllocatedForSlot, 'slotDateKey=', slotDateKey, 'normalizedSlotTime=', normalizedSlotTime)
         console.log('BOOKING DEBUG filter=', JSON.stringify(filter))
-        const updatedDoc = await doctorModel.findOneAndUpdate(filter, { $inc: { [path]: 1 } }, { new: true })
-        if (!updatedDoc) {
+
+        // Reconcile with actual appointment records to handle stale/misaligned doctor.slots_booked
+        // Build candidate slotDate values to count existing appointments (canonical and ISO forms)
+        const slotDateCandidates = [slotDateKey]
+        try {
+            const parts = slotDateKey.split('_').map(Number)
+            const maybe = new Date(parts[2], parts[1] - 1, parts[0])
+            const iso = maybe.toISOString()
+            if (!slotDateCandidates.includes(iso)) slotDateCandidates.push(iso)
+        } catch (e) {
+            // ignore parse errors and proceed with canonical key only
+        }
+
+        const appointmentBookedCount = await appointmentModel.countDocuments({ docId: docId.toString(), slotDate: { $in: slotDateCandidates }, slotTime: normalizedSlotTime, cancelled: { $ne: true } })
+        // if appointment records already fill the slot, reject immediately
+        if (appointmentBookedCount >= seatsAllocatedForSlot) {
             return res.json({ success: false, message: 'Slot Not Available' })
+        }
+
+        // attempt atomic increment using slots_booked
+        let updatedDoc = await doctorModel.findOneAndUpdate(filter, { $inc: { [path]: 1 } }, { new: true })
+        if (!updatedDoc) {
+            // possible cause: doctor.slots_booked contains a stale value >= seatsAllocatedForSlot
+            // Repair: set slots_booked counter to the actual appointment count, then retry once
+            try {
+                await doctorModel.findByIdAndUpdate(docId, { $set: { [path]: appointmentBookedCount } })
+            } catch (e) {
+                console.log('Failed to repair slots_booked counter', e.message)
+            }
+            // retry increment once
+            updatedDoc = await doctorModel.findOneAndUpdate(filter, { $inc: { [path]: 1 } }, { new: true })
+            if (!updatedDoc) {
+                return res.json({ success: false, message: 'Slot Not Available' })
+            }
         }
 
         // proceed to create appointment
@@ -522,8 +553,31 @@ const bookAppointmentGuest = async (req, res) => {
 
         console.log('BOOKING DEBUG path=', path, 'seatsAllocatedForSlot=', seatsAllocatedForSlot, 'slotDateKey=', slotDateKey, 'normalizedSlotTime=', normalizedSlotTime)
         console.log('BOOKING DEBUG filter=', JSON.stringify(filter))
-        const updatedDoc = await doctorModel.findOneAndUpdate(filter, { $inc: { [path]: 1 } }, { new: true })
-        if (!updatedDoc) return res.json({ success: false, message: 'Slot Not Available' })
+
+        // Reconcile with actual appointment records to handle stale/misaligned doctor.slots_booked
+        const slotDateCandidates = [slotDateKey]
+        try {
+            const parts = slotDateKey.split('_').map(Number)
+            const maybe = new Date(parts[2], parts[1] - 1, parts[0])
+            const iso = maybe.toISOString()
+            if (!slotDateCandidates.includes(iso)) slotDateCandidates.push(iso)
+        } catch (e) {
+            // ignore parse errors and proceed with canonical key only
+        }
+
+        const appointmentBookedCount = await appointmentModel.countDocuments({ docId: docId.toString(), slotDate: { $in: slotDateCandidates }, slotTime: normalizedSlotTime, cancelled: { $ne: true } })
+        if (appointmentBookedCount >= seatsAllocatedForSlot) return res.json({ success: false, message: 'Slot Not Available' })
+
+        let updatedDoc = await doctorModel.findOneAndUpdate(filter, { $inc: { [path]: 1 } }, { new: true })
+        if (!updatedDoc) {
+            try {
+                await doctorModel.findByIdAndUpdate(docId, { $set: { [path]: appointmentBookedCount } })
+            } catch (e) {
+                console.log('Failed to repair slots_booked counter', e.message)
+            }
+            updatedDoc = await doctorModel.findOneAndUpdate(filter, { $inc: { [path]: 1 } }, { new: true })
+            if (!updatedDoc) return res.json({ success: false, message: 'Slot Not Available' })
+        }
 
         const guestUserData = { name: patientName, phone: patientMobile, isGuest: true }
 
