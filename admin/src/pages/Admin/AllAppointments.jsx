@@ -21,30 +21,56 @@ const AllAppointments = () => {
       <p className='mb-3 text-lg font-medium'>All Appointments</p>
 
       <div className='bg-white border rounded text-sm max-h-[80vh] overflow-y-scroll'>
-        <div className='hidden sm:grid grid-cols-[0.5fr_3fr_1fr_3fr_3fr_1fr_1fr] grid-flow-col py-3 px-6 border-b'>
+        <div className='hidden sm:grid grid-cols-[0.5fr_3fr_1fr_3fr_2fr_1fr] grid-flow-col py-3 px-6 border-b'>
           <p>#</p>
           <p>Patient</p>
-          <p>Age</p>
+          <p>Mobile</p>
           <p>Date & Time</p>
-          <p>Doctor</p>
-          <p>Fees</p>
+          <p>Status</p>
           <p>Action</p>
         </div>
-        {appointments.map((item, index) => (
-          <div className='flex flex-wrap justify-between max-sm:gap-2 sm:grid sm:grid-cols-[0.5fr_3fr_1fr_3fr_3fr_1fr_1fr] items-center text-gray-500 py-3 px-6 border-b hover:bg-gray-50' key={index}>
-            <p className='max-sm:hidden'>{index+1}</p>
-            <div className='flex items-center gap-2'>
-              <img src={item.userData.image} onError={(e)=>{ e.target.onerror=null; e.target.src='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="100%" height="100%" fill="%23E5E7EB"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%236B7280" font-size="12">User</text></svg>' }} className='w-8 rounded-full' alt="" /> <p>{item.userData.name}</p>
+        {appointments.map((item, index) => {
+          // Handle both new and old appointment structures
+          const patientName = item.patientName || item.userData?.name || 'Anonymous'
+          const patientMobile = item.patientMobile || item.userData?.phone || 'N/A'
+          const isOldStructure = item.docData || item.userData
+          
+          return (
+            <div className='flex flex-wrap justify-between max-sm:gap-2 sm:grid sm:grid-cols-[0.5fr_3fr_1fr_3fr_2fr_1fr] items-center text-gray-500 py-3 px-6 border-b hover:bg-gray-50' key={index}>
+              <p className='max-sm:hidden'>{index+1}</p>
+              <div className='flex items-center gap-2'>
+                <div className='rounded-full w-8 h-8 bg-blue-100 flex items-center justify-center'>
+                  <span className='text-blue-600 font-semibold text-sm'>
+                    {patientName.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <div>
+                  <p>{patientName}</p>
+                  {isOldStructure && (
+                    <p className='text-xs text-orange-500'>(Legacy booking)</p>
+                  )}
+                </div>
+              </div>
+              <p className='max-sm:hidden'>{patientMobile}</p>
+              <p>{slotDateFormat(item.slotDate)}, {item.slotTime}</p>
+              <div className='flex items-center gap-2'>
+                {item.cancelled ? (
+                  <span className='px-2 py-1 bg-red-100 text-red-600 rounded text-xs font-medium'>Cancelled</span>
+                ) : item.isCompleted ? (
+                  <span className='px-2 py-1 bg-green-100 text-green-600 rounded text-xs font-medium'>Completed</span>
+                ) : (
+                  <span className='px-2 py-1 bg-blue-100 text-blue-600 rounded text-xs font-medium'>Scheduled</span>
+                )}
+              </div>
+              {item.cancelled ? 
+                <p className='text-red-400 text-xs font-medium'>Cancelled</p> : 
+                item.isCompleted ? 
+                <p className='text-green-500 text-xs font-medium'>Completed</p> : 
+                <img onClick={() => cancelAppointment(item._id)} className='w-10 cursor-pointer' src={assets.cancel_icon} alt="" />
+              }
             </div>
-            <p className='max-sm:hidden'>{Number.isFinite(calculateAge(item.userData.dob)) ? calculateAge(item.userData.dob) : ''}</p>
-            <p>{slotDateFormat(item.slotDate)}, {item.slotTime}</p>
-            <div className='flex items-center gap-2'>
-              <img src={item.docData.image} onError={(e)=>{ e.target.onerror=null; e.target.src='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="100%" height="100%" fill="%23E5E7EB"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%236B7280" font-size="12">Doctor</text></svg>' }} className='w-8 rounded-full bg-gray-200' alt="" /> <p>{item.docData.name}</p>
-            </div>
-            <p>{currency}{item.amount}</p>
-            {item.cancelled ? <p className='text-red-400 text-xs font-medium'>Cancelled</p> : item.isCompleted ? <p className='text-green-500 text-xs font-medium'>Completed</p> : <img onClick={() => cancelAppointment(item._id)} className='w-10 cursor-pointer' src={assets.cancel_icon} alt="" />}
-          </div>
-        ))}
+          )
+        })}
       </div>
 
     </div>

@@ -1,13 +1,13 @@
 import mongoose from 'mongoose';
 
 const availabilitySchema = new mongoose.Schema({
-    docId: { type: mongoose.Schema.Types.ObjectId, ref: 'doctor', required: true },
-    date: { type: String, required: true }, // format: DD_MM_YYYY
-    totalSlots: { type: Number, required: true }, // total seats for the day
-    slotDurationMinutes: { type: Number, required: true },
-    startHour: { type: Number, default: 9 },
-    endHour: { type: Number, default: 17 },
-    calendarEventId: { type: String },
+    date: { type: String, required: true, unique: true }, // format: DD_MM_YYYY
+    totalSlots: { type: Number, required: true, default: 14 }, // 14 slots (30min each, 7 hours)
+    slotDurationMinutes: { type: Number, required: true, default: 30 },
+    startHour: { type: Number, default: 10 }, // 10:00 AM
+    endHour: { type: Number, default: 17 }, // 5:00 PM
+    maxBookingsPerSlot: { type: Number, default: 1 },
+    isHoliday: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now }
 }, { minimize: false })
 

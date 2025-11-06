@@ -6,6 +6,7 @@ import connectCloudinary from "./config/cloudinary.js"
 import userRouter from "./routes/userRoute.js"
 import doctorRouter from "./routes/doctorRoute.js"
 import adminRouter from "./routes/adminRoute.js"
+import bookingRouter from "./routes/bookingRoute.js"
 import path from 'path'
 import { fileURLToPath } from 'url'
 
@@ -23,6 +24,7 @@ app.use(cors())
 app.use("/api/user", userRouter)
 app.use("/api/admin", adminRouter)
 app.use("/api/doctor", doctorRouter)
+app.use("/api/booking", bookingRouter)
 
 // Serve static frontend and admin builds if they exist (useful when deploying via a single web service)
 const __filename = fileURLToPath(import.meta.url)

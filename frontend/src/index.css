@@ -24,9 +24,15 @@
 /* FullCalendar custom styles for available and selected days */
 .fc-available-day {
     background-color: rgba(59, 130, 246, 0.08);
-        /* slightly stronger indigo */
-        border-radius: 8px;
-        cursor: pointer;
+    /* slightly stronger indigo */
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.fc-selected-day {
+    background-color: rgba(59, 130, 246, 0.2) !important;
+    border: 2px solid rgb(59, 130, 246) !important;
+    border-radius: 8px;
 }
 
 .fc-selected-day {
