@@ -51,9 +51,6 @@ const DoctorDisplay = () => {
                   alt={doctor.name}
                   className='w-full h-64 object-cover'
                 />
-                <div className='absolute top-2 right-2 bg-gray-500 text-white px-2 py-1 rounded text-xs'>
-                  For Display Only
-                </div>
               </div>
               <div className='p-6'>
                 <h3 className='text-xl font-semibold text-gray-800 mb-2'>

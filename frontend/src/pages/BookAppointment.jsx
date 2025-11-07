@@ -120,6 +120,10 @@ const BookAppointment = () => {
 
             if (data.success) {
                 toast.success(data.message)
+                
+                // Refresh availability data to get updated seat counts
+                await getAvailability()
+                
                 // Store booking details for confirmation page
                 sessionStorage.setItem('last_booking', JSON.stringify({
                     slotDate: selectedDateKey,
@@ -231,6 +235,20 @@ const BookAppointment = () => {
                                             day: 'numeric' 
                                         })
                                     })()}</div>
+                                    <div className='flex items-center gap-4 mt-2 text-sm text-gray-600'>
+                                        <div className='flex items-center gap-1'>
+                                            <div className='w-2 h-2 rounded-full bg-green-400'></div>
+                                            <span>Available</span>
+                                        </div>
+                                        <div className='flex items-center gap-1'>
+                                            <div className='w-2 h-2 rounded-full bg-red-400'></div>
+                                            <span>Fully Booked</span>
+                                        </div>
+                                        <div className='flex items-center gap-1'>
+                                            <div className='w-2 h-2 rounded-full bg-blue-600'></div>
+                                            <span>Selected</span>
+                                        </div>
+                                    </div>
                                 </div>
                                 
                                 {isSlotsLoading ? (
@@ -238,20 +256,51 @@ const BookAppointment = () => {
                                         <Loader />
                                     </div>
                                 ) : (
-                                    <div className='grid grid-cols-2 gap-2 max-h-64 overflow-y-auto'>
-                                        {availabilityMap[selectedDateKey]?.filter(slot => slot.availableSeats > 0).map((slot, index) => (
-                                            <button
-                                                key={index}
-                                                onClick={() => setSlotTime(slot.time)}
-                                                className={`p-3 text-sm border rounded-lg transition-colors ${
-                                                    slotTime === slot.time 
-                                                        ? 'bg-blue-600 text-white border-blue-600' 
-                                                        : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
-                                                }`}
-                                            >
-                                                {slot.time}
-                                            </button>
-                                        ))}
+                                    <div>
+                                        {availabilityMap[selectedDateKey]?.length > 0 ? (
+                                            <div className='grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-64 overflow-y-auto'>
+                                                {availabilityMap[selectedDateKey]?.map((slot, index) => {
+                                                    const isAvailable = slot.availableSeats > 0;
+                                                    const isBooked = slot.bookedSeats > 0;
+                                                    
+                                                    return (
+                                                        <button
+                                                            key={index}
+                                                            onClick={() => isAvailable ? setSlotTime(slot.time) : null}
+                                                            disabled={!isAvailable}
+                                                            className={`p-3 text-sm border rounded-lg transition-all ${
+                                                                !isAvailable 
+                                                                    ? 'bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed opacity-75'
+                                                                    : slotTime === slot.time 
+                                                                        ? 'bg-blue-600 text-white border-blue-600 shadow-md' 
+                                                                        : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:bg-blue-50 hover:shadow-md'
+                                                            }`}
+                                                        >
+                                                            <div className='flex flex-col items-center'>
+                                                                <span className='font-medium'>{slot.time}</span>
+                                                                <div className='flex items-center mt-1'>
+                                                                    <div className={`w-2 h-2 rounded-full mr-1 ${
+                                                                        isAvailable ? 'bg-green-400' : 'bg-red-400'
+                                                                    }`}></div>
+                                                                    <span className='text-xs opacity-75'>
+                                                                        {isAvailable 
+                                                                            ? `${slot.availableSeats} seat${slot.availableSeats !== 1 ? 's' : ''} available`
+                                                                            : 'Fully Booked'
+                                                                        }
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        ) : (
+                                            <div className='text-center text-gray-500 py-8'>
+                                                <div className='text-red-500 mb-2'>📅</div>
+                                                <p className='font-medium'>No slots available</p>
+                                                <p className='text-sm mt-1'>Please select another date</p>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
