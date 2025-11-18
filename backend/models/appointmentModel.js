@@ -5,7 +5,10 @@ const appointmentSchema = new mongoose.Schema({
     slotDate: { type: String, required: true },
     slotTime: { type: String, required: true },
     patientName: { type: String, required: true },
+    patientEmail: { type: String, required: false },
     patientMobile: { type: String, required: true },
+    patientAddress: { type: String, required: false },
+    notes: { type: String, required: false },
     userData: { type: Object, required: false }, // made optional for guest bookings
     amount: { type: Number, required: false, default: 0 }, // made optional
     date: { type: Number, required: true },

@@ -168,10 +168,10 @@ const getAvailability = async (req, res) => {
 // Book an appointment
 const bookAppointment = async (req, res) => {
     try {
-        const { slotDate, slotTime, patientName, patientMobile } = req.body;
+        const { slotDate, slotTime, patientName, patientEmail, patientMobile, patientAddress, notes } = req.body;
         
         if (!slotDate || !slotTime || !patientName || !patientMobile) {
-            return res.json({ success: false, message: 'All fields are required' });
+            return res.json({ success: false, message: 'All required fields must be filled' });
         }
         
         const normalizedDate = normalizeSlotDateKey(slotDate);
@@ -240,7 +240,10 @@ const bookAppointment = async (req, res) => {
             slotDate: normalizedDate,
             slotTime,
             patientName,
+            patientEmail: patientEmail || '',
             patientMobile,
+            patientAddress: patientAddress || '',
+            notes: notes || '',
             date: Date.now(),
             isGuestBooking: true,
             cancellationDeadline: cancellationDeadline
