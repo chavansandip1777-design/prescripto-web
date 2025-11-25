@@ -31,6 +31,8 @@ const Appointment = () => {
     const [booking, setBooking] = useState({})
     const [isBooking, setIsBooking] = useState(false)
     const [isSlotsLoading, setIsSlotsLoading] = useState(false)
+    const [isDatesLoading, setIsDatesLoading] = useState(true)
+    const [calendarReady, setCalendarReady] = useState(false)
 
     const navigate = useNavigate()
 
@@ -42,6 +44,8 @@ const Appointment = () => {
     const getAvailableSolts = async () => {
         setDocSlots([])
         setIsSlotsLoading(true)
+        setIsDatesLoading(true)
+        setCalendarReady(false)
         try {
             const { data } = await axios.post(backendUrl + '/api/doctor/availability', { docId })
                 if (data.success) {
@@ -97,12 +101,22 @@ const Appointment = () => {
                         else setSelectedDateKey(firstKey)
                     }
                 }
+                
+                // Give calendar a brief moment to render with the new data
+                requestAnimationFrame(() => {
+                    setTimeout(() => {
+                        setIsDatesLoading(false)
+                        setCalendarReady(true)
+                    }, 200)
+                })
                 return
             } else {
                 console.log('No availability returned from backend', data.message)
             }
         } catch (error) {
             console.log('Failed to fetch availability', error)
+            setCalendarReady(true)
+            setIsDatesLoading(false)
         } finally {
             setIsSlotsLoading(false)
         }
@@ -252,7 +266,12 @@ const Appointment = () => {
                 <p >Booking slots</p>
                 <div className='flex flex-col sm:flex-row gap-6'>
                     <div className='w-full sm:w-2/5'>
-                        <div className='bg-white rounded-lg p-3 shadow-sm'>
+                        <div className='bg-white rounded-lg p-3 shadow-sm relative'>
+                            {isDatesLoading && (
+                                <div className='absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-10 rounded-lg'>
+                                    <Loader size='xlarge' />
+                                </div>
+                            )}
                             <FullCalendar
                                 plugins={[ dayGridPlugin, interactionPlugin ]}
                                 initialView='dayGridMonth'
@@ -364,7 +383,7 @@ const Appointment = () => {
                             <div className='max-h-96 overflow-y-auto space-y-3 pr-2'>
                                 {isSlotsLoading ? (
                                     <div className='flex items-center justify-center py-8'>
-                                        <Loader />
+                                        <Loader size='large' />
                                     </div>
                                 ) : selectedDateKey && availabilityMap[selectedDateKey] ? (
                                     availabilityMap[selectedDateKey]

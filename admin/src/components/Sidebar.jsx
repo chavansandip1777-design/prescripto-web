@@ -30,16 +30,16 @@ const Sidebar = ({ collapsed }) => {
           <p className={`${collapsed ? 'hidden' : 'hidden md:block'}`}>Doctors List</p>
         </NavLink>
         <NavLink to={'/availability-config'} className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-primary' : ''}`}>
-      <img className='min-w-5 mx-auto' src={assets.calendar_icon} alt='' />
-      <p className={`${collapsed ? 'hidden' : 'hidden md:block'}`}>Availability</p>
+          <img className='min-w-5 mx-auto' src={assets.calendar_icon} alt='' />
+          <p className={`${collapsed ? 'hidden' : 'hidden md:block'}`}>Availability</p>
         </NavLink>
         <NavLink to={'/holiday-management'} className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-primary' : ''}`}>
-      <img className='min-w-5 mx-auto' src={assets.calendar_icon} alt='' />
-      <p className={`${collapsed ? 'hidden' : 'hidden md:block'}`}>Holidays</p>
+          <img className='min-w-5 mx-auto' src={assets.calendar_icon} alt='' />
+          <p className={`${collapsed ? 'hidden' : 'hidden md:block'}`}>Holidays</p>
         </NavLink>
       </ul>}
 
-  {dToken && <ul className={`text-[#515151] mt-5 ${collapsed ? 'text-center' : ''}`}>
+      {dToken && <ul className={`text-[#515151] mt-5 ${collapsed ? 'text-center' : ''}`}>
         <NavLink to={'/doctor-dashboard'} className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-primary' : ''}`}>
           <img className='min-w-5 mx-auto' src={assets.home_icon} alt='' />
           <p className={`${collapsed ? 'hidden' : 'hidden md:block'}`}>Dashboard</p>
@@ -49,8 +49,8 @@ const Sidebar = ({ collapsed }) => {
           <p className={`${collapsed ? 'hidden' : 'hidden md:block'}`}>Appointments</p>
         </NavLink>
         <NavLink to={'/doctor-profile'} className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-primary' : ''}`}>
-      <img className='min-w-5 mx-auto' src={assets.people_icon} alt='' />
-      <p className={`${collapsed ? 'hidden' : 'hidden md:block'}`}>Profile</p>
+          <img className='min-w-5 mx-auto' src={assets.people_icon} alt='' />
+          <p className={`${collapsed ? 'hidden' : 'hidden md:block'}`}>Profile</p>
         </NavLink>
       </ul>}
     </div>

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { AppContext } from '../context/AppContext'
 import axios from 'axios'
 import { toast } from 'react-toastify'
+import Loader from '../components/Loader'
 
 const BookAppointmentNew = () => {
     const { backendUrl } = useContext(AppContext)
@@ -14,6 +15,7 @@ const BookAppointmentNew = () => {
     const [selectedSlot, setSelectedSlot] = useState(null)
     const [currentMonth, setCurrentMonth] = useState(new Date())
     const [isLoading, setIsLoading] = useState(false)
+    const [isCalendarLoading, setIsCalendarLoading] = useState(true)
     
     // Form step
     const [step, setStep] = useState(1) // 1: Calendar & Slots, 2: Form
@@ -30,6 +32,7 @@ const BookAppointmentNew = () => {
     // Get availability
     const getAvailability = async () => {
         setIsLoading(true)
+        setIsCalendarLoading(true)
         try {
             const { data } = await axios.get(backendUrl + '/api/booking/availability')
             
@@ -52,10 +55,20 @@ const BookAppointmentNew = () => {
                 })
                 
                 setAvailabilityMap(map)
+                
+                // Give time for calendar to render with enabled dates
+                requestAnimationFrame(() => {
+                    setTimeout(() => {
+                        setIsCalendarLoading(false)
+                    }, 400)
+                })
+            } else {
+                setIsCalendarLoading(false)
             }
         } catch (error) {
             console.log('Failed to fetch availability', error)
             toast.error('Failed to load availability')
+            setIsCalendarLoading(false)
         } finally {
             setIsLoading(false)
         }
@@ -67,9 +80,12 @@ const BookAppointmentNew = () => {
         return new Date(y, m - 1, d)
     }
 
-    // Format date key
+    // Format date key with zero-padding to match API format
     const formatDateKey = (date) => {
-        return `${date.getDate()}_${date.getMonth() + 1}_${date.getFullYear()}`
+        const day = String(date.getDate()).padStart(2, '0')
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const year = date.getFullYear()
+        return `${day}_${month}_${year}`
     }
 
     // Handle date selection
@@ -355,7 +371,12 @@ const BookAppointmentNew = () => {
     return (
         <div className='min-h-screen bg-gray-50'>
             <div className='max-w-7xl mx-auto p-6'>
-                <div className='bg-white rounded-lg shadow-sm overflow-hidden'>
+                <div className='bg-white rounded-lg shadow-sm overflow-hidden relative'>
+                    {isCalendarLoading && (
+                        <div className='absolute inset-0 bg-white bg-opacity-95 flex items-center justify-center z-50 rounded-lg'>
+                            <Loader size='xlarge' />
+                        </div>
+                    )}
                     <div className='grid grid-cols-1 lg:grid-cols-2 min-h-[600px]'>
                         {/* Left Side - Event Details & Calendar */}
                         <div className='p-8 border-r border-gray-200'>
