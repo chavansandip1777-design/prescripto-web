@@ -73,8 +73,31 @@ const getAvailability = async (req, res) => {
         const holidays = await holidayModel.find(dateFilter);
         const holidayDates = new Set(holidays.map(h => h.date));
 
-        // Get slots from slot model (this is the new approach)
-        const slots = await slotModel.find({ ...dateFilter, isEnabled: true });
+        // Get slots from slot model
+        const slots = await slotModel.find({ ...dateFilter, isEnabled: true }).lean();
+
+        // Get all booking counts in ONE query using aggregation
+        const bookingCounts = await appointmentModel.aggregate([
+            {
+                $match: {
+                    cancelled: false,
+                    ...(dateFilter.date ? { slotDate: dateFilter.date } : {})
+                }
+            },
+            {
+                $group: {
+                    _id: { slotDate: '$slotDate', slotTime: '$slotTime' },
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        // Create a map for quick lookup: "date_time" => count
+        const bookingCountMap = {};
+        bookingCounts.forEach(item => {
+            const key = `${item._id.slotDate}_${item._id.slotTime}`;
+            bookingCountMap[key] = item.count;
+        });
 
         // Group slots by date
         const slotsByDate = {};
@@ -118,12 +141,9 @@ const getAvailability = async (req, res) => {
                 }
             }
 
-            // Count existing bookings for this slot
-            const bookingCount = await appointmentModel.countDocuments({
-                slotDate: slot.date,
-                slotTime: slot.time,
-                cancelled: false
-            });
+            // Get booking count from map (O(1) lookup instead of database query)
+            const bookingKey = `${slot.date}_${slot.time}`;
+            const bookingCount = bookingCountMap[bookingKey] || 0;
 
             const availableSeats = Math.max(0, slot.maxSeats - bookingCount);
 
