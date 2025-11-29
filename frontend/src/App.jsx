@@ -28,7 +28,8 @@ const App = () => {
       <ToastContainer />
       <Navbar />
       <Routes>
-        <Route path='/' element={<Home />} />
+        <Route path='/' element={<BookAppointment />} />
+        <Route path='/home' element={<Home />} />
         <Route path='/book-appointment' element={<BookAppointment />} />
         <Route path='/cancel-appointment' element={<CancelAppointment />} />
         <Route path='/booking-confirmation' element={<BookingConfirmation />} />

@@ -223,12 +223,8 @@ const bookAppointment = async (req, res) => {
             return res.json({ success: false, message: 'Booking not available on holidays' });
         }
 
-        // Check if date is a weekday
+        // Parse the appointment date for time validation
         const appointmentDate = parseSlotDate(normalizedDate);
-        const dayOfWeek = appointmentDate.getDay();
-        if (dayOfWeek === 0 || dayOfWeek === 6) { // Sunday or Saturday
-            return res.json({ success: false, message: 'Booking only available Monday to Friday' });
-        }
 
         // Check if appointment is at least 12 hours from now
         const now = new Date();
