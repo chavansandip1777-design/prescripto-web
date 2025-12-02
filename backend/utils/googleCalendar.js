@@ -190,7 +190,7 @@ export async function createCalendarEvent(appointmentData) {
 }
 
 /**
- * Cancel/Delete a Google Calendar event
+ * Cancel/Update a Google Calendar event to show as cancelled
  * @param {string} eventId - The Google Calendar event ID
  * @returns {Promise<Object>} - Success status
  */
@@ -210,7 +210,7 @@ export async function cancelCalendarEvent(eventId) {
             return { success: false, message: 'Event ID required' };
         }
 
-        console.log('🗓️ Cancelling calendar event:', eventId);
+        console.log('🗓️ Marking calendar event as cancelled:', eventId);
 
         // Initialize Google Auth
         let auth;
@@ -248,17 +248,34 @@ export async function cancelCalendarEvent(eventId) {
 
         const calendar = google.calendar({ version: 'v3', auth });
 
-        // Delete the event
-        await calendar.events.delete({
+        // First, get the existing event
+        const existingEvent = await calendar.events.get({
             calendarId: calendarId,
             eventId: eventId
         });
 
-        console.log('✅ Calendar event cancelled:', eventId);
+        // Update the event to show as cancelled
+        const updatedEvent = {
+            ...existingEvent.data,
+            summary: `[CANCELLED] ${existingEvent.data.summary}`,
+            description: `🚫 APPOINTMENT CANCELLED\n\n${existingEvent.data.description || ''}`,
+            colorId: '11', // Red color for cancelled
+            status: 'cancelled', // Mark as cancelled in Google Calendar
+            transparency: 'transparent' // Don't block time on calendar
+        };
+
+        // Update the event
+        await calendar.events.update({
+            calendarId: calendarId,
+            eventId: eventId,
+            resource: updatedEvent
+        });
+
+        console.log('✅ Calendar event marked as cancelled:', eventId);
 
         return {
             success: true,
-            message: 'Calendar event cancelled successfully'
+            message: 'Calendar event marked as cancelled successfully'
         };
 
     } catch (error) {
