@@ -188,3 +188,94 @@ export async function createCalendarEvent(appointmentData) {
         };
     }
 }
+
+/**
+ * Cancel/Delete a Google Calendar event
+ * @param {string} eventId - The Google Calendar event ID
+ * @returns {Promise<Object>} - Success status
+ */
+export async function cancelCalendarEvent(eventId) {
+    try {
+        const calendarId = process.env.GOOGLE_CALENDAR_ID;
+        const base64Credentials = process.env.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_BASE64;
+        let keyPath = process.env.GOOGLE_SERVICE_ACCOUNT_KEY_PATH;
+
+        if (!calendarId) {
+            console.log('❌ Google Calendar not configured - cannot cancel event');
+            return { success: false, message: 'Google Calendar not configured' };
+        }
+
+        if (!eventId) {
+            console.log('❌ No event ID provided for cancellation');
+            return { success: false, message: 'Event ID required' };
+        }
+
+        console.log('🗓️ Cancelling calendar event:', eventId);
+
+        // Initialize Google Auth
+        let auth;
+        
+        if (base64Credentials) {
+            const credentialsJSON = Buffer.from(base64Credentials, 'base64').toString('utf8');
+            const credentials = JSON.parse(credentialsJSON);
+            auth = new google.auth.GoogleAuth({
+                credentials: credentials,
+                scopes: ['https://www.googleapis.com/auth/calendar']
+            });
+        } else if (keyPath) {
+            if (!path.isAbsolute(keyPath)) {
+                const possiblePaths = [
+                    path.resolve(process.cwd(), keyPath),
+                    path.resolve(__dirname, '..', keyPath),
+                    path.resolve(__dirname, '../..', keyPath)
+                ];
+                
+                for (const testPath of possiblePaths) {
+                    if (fs.existsSync(testPath)) {
+                        keyPath = testPath;
+                        break;
+                    }
+                }
+            }
+            
+            auth = new google.auth.GoogleAuth({
+                keyFile: keyPath,
+                scopes: ['https://www.googleapis.com/auth/calendar']
+            });
+        } else {
+            return { success: false, message: 'Credentials not configured' };
+        }
+
+        const calendar = google.calendar({ version: 'v3', auth });
+
+        // Delete the event
+        await calendar.events.delete({
+            calendarId: calendarId,
+            eventId: eventId
+        });
+
+        console.log('✅ Calendar event cancelled:', eventId);
+
+        return {
+            success: true,
+            message: 'Calendar event cancelled successfully'
+        };
+
+    } catch (error) {
+        console.error('❌ Error cancelling calendar event:', error.message);
+        
+        // If event not found, consider it already deleted
+        if (error.message.includes('Not Found') || error.code === 404) {
+            return {
+                success: true,
+                message: 'Event already deleted or not found'
+            };
+        }
+        
+        return {
+            success: false,
+            message: `Calendar error: ${error.message}`
+        };
+    }
+}
+

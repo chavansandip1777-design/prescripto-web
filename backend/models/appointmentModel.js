@@ -16,7 +16,8 @@ const appointmentSchema = new mongoose.Schema({
     payment: { type: Boolean, default: false },
     isCompleted: { type: Boolean, default: false },
     isGuestBooking: { type: Boolean, default: true }, // default to guest booking
-    cancellationDeadline: { type: Date, required: false } // 12 hours before appointment
+    cancellationDeadline: { type: Date, required: false }, // 12 hours before appointment
+    googleCalendarEventId: { type: String, required: false } // Store Google Calendar event ID
 })
 
 const appointmentModel = mongoose.models.appointment || mongoose.model("appointment", appointmentSchema)

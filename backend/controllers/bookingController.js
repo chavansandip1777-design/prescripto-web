@@ -2,7 +2,7 @@ import appointmentModel from '../models/appointmentModel.js'
 import availabilityModel from '../models/availabilityModel.js'
 import holidayModel from '../models/holidayModel.js'
 import slotModel from '../models/slotModel.js'
-import { createCalendarEvent } from '../utils/googleCalendar.js'
+import { createCalendarEvent, cancelCalendarEvent } from '../utils/googleCalendar.js'
 
 // Helper function to normalize slot date key
 const normalizeSlotDateKey = (dateStr) => {
@@ -281,11 +281,14 @@ const bookAppointment = async (req, res) => {
         const newAppointment = new appointmentModel(appointmentData);
         await newAppointment.save();
 
-        // Create Google Calendar event (non-blocking)
+        // Create Google Calendar event (non-blocking) and save event ID
         createCalendarEvent(appointmentData)
-            .then(result => {
+            .then(async result => {
                 if (result.success) {
                     console.log('✅ Google Calendar event created:', result.eventId);
+                    // Save the Google Calendar event ID to the appointment
+                    newAppointment.googleCalendarEventId = result.eventId;
+                    await newAppointment.save();
                 } else {
                     console.log('⚠️ Google Calendar event not created:', result.message);
                 }
@@ -340,9 +343,26 @@ const cancelAppointment = async (req, res) => {
             });
         }
 
-        // Cancel appointment
+        // Cancel appointment in database
         appointment.cancelled = true;
         await appointment.save();
+
+        // Cancel Google Calendar event (non-blocking)
+        if (appointment.googleCalendarEventId) {
+            cancelCalendarEvent(appointment.googleCalendarEventId)
+                .then(result => {
+                    if (result.success) {
+                        console.log('✅ Google Calendar event cancelled:', appointment.googleCalendarEventId);
+                    } else {
+                        console.log('⚠️ Google Calendar event not cancelled:', result.message);
+                    }
+                })
+                .catch(err => {
+                    console.error('❌ Google Calendar cancellation error:', err.message);
+                });
+        } else {
+            console.log('⚠️ No Google Calendar event ID found for this appointment');
+        }
 
         res.json({ success: true, message: 'Appointment cancelled successfully' });
 
