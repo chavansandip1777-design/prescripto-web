@@ -1,6 +1,11 @@
 import { google } from 'googleapis';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 /**
  * Create a Google Calendar event for an appointment
@@ -17,25 +22,78 @@ import fs from 'fs';
 export async function createCalendarEvent(appointmentData) {
     try {
         // Check if Google Calendar is enabled
-        const keyPath = process.env.GOOGLE_SERVICE_ACCOUNT_KEY_PATH;
+        let keyPath = process.env.GOOGLE_SERVICE_ACCOUNT_KEY_PATH;
         const calendarId = process.env.GOOGLE_CALENDAR_ID;
+        const base64Credentials = process.env.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_BASE64;
 
-        if (!keyPath || !calendarId) {
-            console.log('Google Calendar not configured - skipping event creation');
+        console.log('🗓️ Google Calendar - Starting event creation...');
+        console.log('Calendar ID:', calendarId ? '✓ Set' : '✗ Missing');
+        console.log('Base64 Credentials:', base64Credentials ? '✓ Set' : '✗ Missing');
+        console.log('Key Path from env:', keyPath);
+
+        if (!calendarId) {
+            console.log('❌ Google Calendar not configured - GOOGLE_CALENDAR_ID missing');
             return { success: false, message: 'Google Calendar not configured' };
         }
 
-        // Check if credentials file exists
-        if (!fs.existsSync(keyPath)) {
-            console.error('Google service account key file not found:', keyPath);
-            return { success: false, message: 'Credentials file not found' };
-        }
+        // Initialize Google Auth - handle both file and base64 credentials
+        let auth;
 
-        // Initialize Google Auth
-        const auth = new google.auth.GoogleAuth({
-            keyFile: keyPath,
-            scopes: ['https://www.googleapis.com/auth/calendar']
-        });
+        if (base64Credentials) {
+            // Decode base64 credentials (for cloud hosting like Render)
+            try {
+                const credentialsJSON = Buffer.from(base64Credentials, 'base64').toString('utf8');
+                const credentials = JSON.parse(credentialsJSON);
+
+                auth = new google.auth.GoogleAuth({
+                    credentials: credentials,
+                    scopes: ['https://www.googleapis.com/auth/calendar']
+                });
+                console.log('✅ Using base64 encoded credentials (cloud hosting)');
+            } catch (decodeError) {
+                console.error('❌ Error decoding base64 credentials:', decodeError.message);
+                return { success: false, message: 'Invalid credentials format' };
+            }
+        } else if (keyPath) {
+            // Resolve the path relative to backend directory
+            if (!path.isAbsolute(keyPath)) {
+                // Try multiple possible locations
+                const possiblePaths = [
+                    path.resolve(process.cwd(), keyPath),
+                    path.resolve(__dirname, '..', keyPath),
+                    path.resolve(__dirname, '../..', keyPath)
+                ];
+
+                let foundPath = null;
+                for (const testPath of possiblePaths) {
+                    console.log('Checking path:', testPath);
+                    if (fs.existsSync(testPath)) {
+                        foundPath = testPath;
+                        console.log('✓ Found credentials file at:', testPath);
+                        break;
+                    }
+                }
+
+                if (foundPath) {
+                    keyPath = foundPath;
+                } else {
+                    console.error('❌ Credentials file not found in any of these locations:');
+                    possiblePaths.forEach(p => console.error('  -', p));
+                    return { success: false, message: 'Credentials file not found' };
+                }
+            }
+
+            // Use file path (for local development)
+            auth = new google.auth.GoogleAuth({
+                keyFile: keyPath,
+                scopes: ['https://www.googleapis.com/auth/calendar']
+            });
+            console.log('✅ Using credentials file from:', keyPath);
+        } else {
+            console.log('❌ Google Calendar not configured - no credentials found');
+            console.log('Set either GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_BASE64 or GOOGLE_SERVICE_ACCOUNT_KEY_PATH');
+            return { success: false, message: 'Credentials not configured' };
+        }
 
         const calendar = google.calendar({ version: 'v3', auth });
 
