@@ -2,6 +2,7 @@ import appointmentModel from '../models/appointmentModel.js'
 import availabilityModel from '../models/availabilityModel.js'
 import holidayModel from '../models/holidayModel.js'
 import slotModel from '../models/slotModel.js'
+import { createCalendarEvent } from '../utils/googleCalendar.js'
 
 // Helper function to normalize slot date key
 const normalizeSlotDateKey = (dateStr) => {
@@ -279,6 +280,19 @@ const bookAppointment = async (req, res) => {
 
         const newAppointment = new appointmentModel(appointmentData);
         await newAppointment.save();
+
+        // Create Google Calendar event (non-blocking)
+        createCalendarEvent(appointmentData)
+            .then(result => {
+                if (result.success) {
+                    console.log('✅ Google Calendar event created:', result.eventId);
+                } else {
+                    console.log('⚠️ Google Calendar event not created:', result.message);
+                }
+            })
+            .catch(err => {
+                console.error('❌ Google Calendar error:', err.message);
+            });
 
         res.json({
             success: true,
