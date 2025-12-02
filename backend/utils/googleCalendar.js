@@ -255,24 +255,37 @@ export async function cancelCalendarEvent(eventId) {
         });
 
         // Check if already cancelled
-        if (existingEvent.data.summary && existingEvent.data.summary.includes('[CANCELLED]')) {
+        if (existingEvent.data.summary && existingEvent.data.summary.includes('❌ CANCELLED')) {
             console.log('⚠️ Event already marked as cancelled');
             return { success: true, message: 'Event already cancelled' };
         }
 
-        // Update the event to show as cancelled (without changing status field)
-        // Note: We don't use status: 'cancelled' because it hides the event in Google Calendar
+        // Get original summary without any previous cancellation markers
+        let originalSummary = existingEvent.data.summary;
+        if (originalSummary.includes('[CANCELLED]')) {
+            originalSummary = originalSummary.replace('[CANCELLED]', '').trim();
+        }
+
+        // Update the event to show as cancelled
+        // Using red color (11) and clear visual indicators
         const updatedEvent = {
-            summary: `[CANCELLED] ${existingEvent.data.summary}`,
-            description: `🚫 APPOINTMENT CANCELLED\n\n${existingEvent.data.description || ''}`,
-            colorId: '11' // Red color for cancelled
+            summary: `❌ CANCELLED - ${originalSummary}`,
+            description: `🚫 THIS APPOINTMENT HAS BEEN CANCELLED\n\nOriginal Details:\n${existingEvent.data.description || ''}`,
+            colorId: '11', // Red color
+            transparency: 'transparent' // Free/busy: transparent (shows as free time)
         };
 
-        // Update the event (only the fields we specify)
-        await calendar.events.patch({
+        // Update the event using patch (partial update)
+        const response = await calendar.events.patch({
             calendarId: calendarId,
             eventId: eventId,
             resource: updatedEvent
+        });
+
+        console.log('✅ Event updated with cancellation markers:', {
+            summary: response.data.summary,
+            colorId: response.data.colorId,
+            transparency: response.data.transparency
         });
 
         console.log('✅ Calendar event marked as cancelled:', eventId);
