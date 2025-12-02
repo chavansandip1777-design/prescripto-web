@@ -254,18 +254,22 @@ export async function cancelCalendarEvent(eventId) {
             eventId: eventId
         });
 
-        // Update the event to show as cancelled
+        // Check if already cancelled
+        if (existingEvent.data.summary && existingEvent.data.summary.includes('[CANCELLED]')) {
+            console.log('⚠️ Event already marked as cancelled');
+            return { success: true, message: 'Event already cancelled' };
+        }
+
+        // Update the event to show as cancelled (without changing status field)
+        // Note: We don't use status: 'cancelled' because it hides the event in Google Calendar
         const updatedEvent = {
-            ...existingEvent.data,
             summary: `[CANCELLED] ${existingEvent.data.summary}`,
             description: `🚫 APPOINTMENT CANCELLED\n\n${existingEvent.data.description || ''}`,
-            colorId: '11', // Red color for cancelled
-            status: 'cancelled', // Mark as cancelled in Google Calendar
-            transparency: 'transparent' // Don't block time on calendar
+            colorId: '11' // Red color for cancelled
         };
 
-        // Update the event
-        await calendar.events.update({
+        // Update the event (only the fields we specify)
+        await calendar.events.patch({
             calendarId: calendarId,
             eventId: eventId,
             resource: updatedEvent
