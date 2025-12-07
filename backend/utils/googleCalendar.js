@@ -122,13 +122,18 @@ export async function createCalendarEvent(appointmentData) {
         appointmentDate.setHours(hour, minute, 0, 0);
         const startDateTime = appointmentDate.toISOString();
 
-        // Set appointment end time (30 minutes duration by default)
+        // Set appointment end time using configured duration (default 30 minutes)
+        const duration = appointmentData.eventDuration || 30;
         const endDate = new Date(appointmentDate);
-        endDate.setMinutes(endDate.getMinutes() + 30);
+        endDate.setMinutes(endDate.getMinutes() + duration);
         const endDateTime = endDate.toISOString();
 
-        // Build event description
-        let description = `Patient: ${appointmentData.patientName}\n`;
+        // Build event description - use configured description if available
+        let description = '';
+        if (appointmentData.eventDescription) {
+            description = `${appointmentData.eventDescription}\n\n`;
+        }
+        description += `Patient: ${appointmentData.patientName}\n`;
         description += `Mobile: ${appointmentData.patientMobile}\n`;
         if (appointmentData.patientEmail) {
             description += `Email: ${appointmentData.patientEmail}\n`;
@@ -140,9 +145,14 @@ export async function createCalendarEvent(appointmentData) {
             description += `\nNotes: ${appointmentData.notes}`;
         }
 
+        // Use configured event title or default
+        const eventTitle = appointmentData.eventTitle
+            ? `${appointmentData.eventTitle} - ${appointmentData.patientName}`
+            : `Appointment - ${appointmentData.patientName}`;
+
         // Create the event
         const event = {
-            summary: `Appointment - ${appointmentData.patientName}`,
+            summary: eventTitle,
             description: description,
             start: {
                 dateTime: startDateTime,

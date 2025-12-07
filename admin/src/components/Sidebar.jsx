@@ -29,9 +29,36 @@ const Sidebar = ({ collapsed }) => {
           <img className='min-w-5 mx-auto' src={assets.people_icon} alt='' />
           <p className={`${collapsed ? 'hidden' : 'hidden md:block'}`}>Doctors List</p>
         </NavLink>
-        <NavLink to={'/availability-config'} className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-primary' : ''}`}>
-          <img className='min-w-5 mx-auto' src={assets.calendar_icon} alt='' />
+        
+        {/* Booking Configuration Section */}
+        <div className={`mt-4 mb-2 px-3 md:px-9 ${collapsed ? 'hidden' : 'hidden md:block'}`}>
+          <p className='text-xs font-semibold text-gray-400 uppercase'>Booking Settings</p>
+        </div>
+        
+        <NavLink to={'/booking-basics'} className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-primary' : ''}`}>
+          <span className='min-w-5 mx-auto text-lg'>🔗</span>
+          <p className={`${collapsed ? 'hidden' : 'hidden md:block'}`}>Basics</p>
+        </NavLink>
+        <NavLink to={'/booking-availability'} className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-primary' : ''}`}>
+          <span className='min-w-5 mx-auto text-lg'>📅</span>
           <p className={`${collapsed ? 'hidden' : 'hidden md:block'}`}>Availability</p>
+        </NavLink>
+        <NavLink to={'/booking-limits'} className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-primary' : ''}`}>
+          <span className='min-w-5 mx-auto text-lg'>⏱️</span>
+          <p className={`${collapsed ? 'hidden' : 'hidden md:block'}`}>Limits</p>
+        </NavLink>
+        <NavLink to={'/booking-advanced'} className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-primary' : ''}`}>
+          <span className='min-w-5 mx-auto text-lg'>⚙️</span>
+          <p className={`${collapsed ? 'hidden' : 'hidden md:block'}`}>Advanced</p>
+        </NavLink>
+        <NavLink to={'/custom-slots'} className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-primary' : ''}`}>
+          <span className='min-w-5 mx-auto text-lg'>🎯</span>
+          <p className={`${collapsed ? 'hidden' : 'hidden md:block'}`}>Custom Slots</p>
+        </NavLink>
+        
+        <NavLink to={'/holiday-management'} className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-primary' : ''}`}>
+          <img className='min-w-5 mx-auto' src={assets.calendar_icon} alt='' />
+          <p className={`${collapsed ? 'hidden' : 'hidden md:block'}`}>Holidays</p>
         </NavLink>
         <NavLink to={'/holiday-management'} className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-primary' : ''}`}>
           <img className='min-w-5 mx-auto' src={assets.calendar_icon} alt='' />

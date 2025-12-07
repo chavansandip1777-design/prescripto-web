@@ -209,8 +209,14 @@ const BookAppointmentNew = () => {
     }
 
     useEffect(() => {
-        getAvailability()
-    }, [])
+        if (backendUrl) {
+            getAvailability()
+            // Reset selection when month changes
+            setSelectedDate(null)
+            setSelectedDateKey(null)
+            setSelectedSlot(null)
+        }
+    }, [currentMonth, backendUrl])
 
     const calendarDays = generateCalendarDays()
     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']

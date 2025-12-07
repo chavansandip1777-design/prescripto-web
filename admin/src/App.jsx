@@ -13,6 +13,11 @@ import DoctorsList from './pages/Admin/DoctorsList';
 import Settings from './pages/Admin/Settings';
 import AvailabilityConfig from './pages/Admin/AvailabilityConfig';
 import HolidayManagement from './pages/Admin/HolidayManagement';
+import BookingBasics from './pages/Admin/BookingBasics';
+import BookingAvailability from './pages/Admin/BookingAvailability';
+import BookingLimits from './pages/Admin/BookingLimits';
+import BookingAdvanced from './pages/Admin/BookingAdvanced';
+import CustomSlots from './pages/Admin/CustomSlots';
 import Login from './pages/Login';
 import DoctorAppointments from './pages/Doctor/DoctorAppointments';
 import DoctorDashboard from './pages/Doctor/DoctorDashboard';
@@ -41,6 +46,11 @@ const App = () => {
             <Route path='/add-doctor' element={<AddDoctor />} />
             <Route path='/doctor-list' element={<DoctorsList />} />
             <Route path='/settings' element={<Settings />} />
+            <Route path='/booking-basics' element={<BookingBasics />} />
+            <Route path='/booking-availability' element={<BookingAvailability />} />
+            <Route path='/booking-limits' element={<BookingLimits />} />
+            <Route path='/booking-advanced' element={<BookingAdvanced />} />
+            <Route path='/custom-slots' element={<CustomSlots />} />
             <Route path='/availability-config' element={<AvailabilityConfig />} />
             <Route path='/holiday-management' element={<HolidayManagement />} />
             <Route path='/doctor-dashboard' element={<DoctorDashboard />} />

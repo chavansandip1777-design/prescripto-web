@@ -11,7 +11,14 @@ import {
     createSlot,
     updateSlot,
     deleteSlot,
-    bulkCreateSlots
+    bulkCreateSlots,
+    getBookingConfig,
+    updateBookingConfig,
+    getCustomSlotsByDate,
+    addCustomSlot,
+    updateCustomSlot,
+    deleteCustomSlot,
+    bulkToggleSlots
 } from '../controllers/adminController.js';
 import authAdmin from '../middleware/authAdmin.js';
 const adminRouter = express.Router();
@@ -32,5 +39,17 @@ adminRouter.post('/create-slot', authAdmin, createSlot)
 adminRouter.post('/update-slot', authAdmin, updateSlot)
 adminRouter.post('/delete-slot', authAdmin, deleteSlot)
 adminRouter.post('/bulk-create-slots', authAdmin, bulkCreateSlots)
+
+// Booking configuration routes
+adminRouter.get('/booking-config', authAdmin, getBookingConfig)
+adminRouter.post('/booking-config', authAdmin, updateBookingConfig)
+
+// Custom slot management routes
+adminRouter.get('/custom-slots', authAdmin, getCustomSlotsByDate)
+adminRouter.post('/custom-slots/add', authAdmin, addCustomSlot)
+adminRouter.post('/custom-slots/update', authAdmin, updateCustomSlot)
+adminRouter.put('/custom-slots/:slotId', authAdmin, updateCustomSlot)
+adminRouter.delete('/custom-slots/:slotId', authAdmin, deleteCustomSlot)
+adminRouter.post('/custom-slots/bulk-toggle', authAdmin, bulkToggleSlots)
 
 export default adminRouter;

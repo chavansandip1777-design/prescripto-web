@@ -1,7 +1,7 @@
 import appointmentModel from '../models/appointmentModel.js'
-import availabilityModel from '../models/availabilityModel.js'
 import holidayModel from '../models/holidayModel.js'
-import slotModel from '../models/slotModel.js'
+import bookingConfigModel from '../models/bookingConfigModel.js'
+import customSlotModel from '../models/customSlotModel.js'
 import { createCalendarEvent, cancelCalendarEvent } from '../utils/googleCalendar.js'
 
 // Helper function to normalize slot date key
@@ -49,41 +49,80 @@ const generateTimeSlots = (startHour, endHour, durationMinutes) => {
     return slots;
 };
 
-// Get availability for booking calendar
+// Helper function to calculate notice in milliseconds
+const calculateNoticeInMs = (value, unit) => {
+    const multipliers = {
+        'minutes': 60 * 1000,
+        'hours': 60 * 60 * 1000,
+        'days': 24 * 60 * 60 * 1000
+    };
+    return value * (multipliers[unit] || multipliers.hours);
+};
+
+// Helper function to calculate future booking limit in milliseconds
+const calculateFutureBookingLimit = (value, unit) => {
+    const multipliers = {
+        'days': 24 * 60 * 60 * 1000,
+        'weeks': 7 * 24 * 60 * 60 * 1000,
+        'months': 30 * 24 * 60 * 60 * 1000
+    };
+    return value * (multipliers[unit] || multipliers.days);
+};
+
+// Helper function to format notice text
+const formatNoticeText = (value, unit) => {
+    return `${value} ${unit}`;
+};
+
+// Get availability for booking calendar based on configuration
 const getAvailability = async (req, res) => {
     try {
         const { startDate, endDate } = req.query;
 
-        let dateFilter = {};
-        if (startDate && endDate) {
-            // Convert dates to DD_MM_YYYY format for filtering
-            const start = normalizeSlotDateKey(startDate);
-            const end = normalizeSlotDateKey(endDate);
-            if (start && end) {
-                dateFilter = { date: { $gte: start, $lte: end } };
-            }
+        // Get booking configuration
+        let bookingConfig = await bookingConfigModel.findOne();
+        if (!bookingConfig) {
+            bookingConfig = new bookingConfigModel();
+            await bookingConfig.save();
         }
 
-        // Get current date and time
         const now = new Date();
         const todayKey = `${String(now.getDate()).padStart(2, '0')}_${String(now.getMonth() + 1).padStart(2, '0')}_${now.getFullYear()}`;
-        const currentHour = now.getHours();
-        const currentMinute = now.getMinutes();
+
+        // Calculate date range based on config
+        const minimumNoticeMs = calculateNoticeInMs(bookingConfig.minimumNotice, bookingConfig.minimumNoticeUnit);
+        const futureBookingLimitMs = calculateFutureBookingLimit(
+            bookingConfig.limitFutureBookingValue,
+            bookingConfig.limitFutureBookingUnit
+        );
+
+        // Determine start and end dates - prioritize configured date range, then use query params, finally defaults
+        let startDateObj, endDateObj;
+
+        if (bookingConfig.startDate && bookingConfig.endDate) {
+            // Use configured date range
+            startDateObj = new Date(bookingConfig.startDate);
+            endDateObj = new Date(bookingConfig.endDate);
+
+            // Ensure start date respects minimum notice
+            const minStartDate = new Date(now.getTime() + minimumNoticeMs);
+            if (startDateObj < minStartDate) {
+                startDateObj = minStartDate;
+            }
+        } else {
+            // Fallback to query params or defaults
+            startDateObj = startDate ? new Date(startDate) : new Date(now.getTime() + minimumNoticeMs);
+            endDateObj = endDate ? new Date(endDate) : new Date(now.getTime() + futureBookingLimitMs);
+        }
 
         // Get holidays
-        const holidays = await holidayModel.find(dateFilter);
+        const holidays = await holidayModel.find({});
         const holidayDates = new Set(holidays.map(h => h.date));
 
-        // Get slots from slot model
-        const slots = await slotModel.find({ ...dateFilter, isEnabled: true }).lean();
-
-        // Get all booking counts in ONE query using aggregation
+        // Get all booking counts
         const bookingCounts = await appointmentModel.aggregate([
             {
-                $match: {
-                    cancelled: false,
-                    ...(dateFilter.date ? { slotDate: dateFilter.date } : {})
-                }
+                $match: { cancelled: false }
             },
             {
                 $group: {
@@ -93,91 +132,152 @@ const getAvailability = async (req, res) => {
             }
         ]);
 
-        // Create a map for quick lookup: "date_time" => count
         const bookingCountMap = {};
         bookingCounts.forEach(item => {
             const key = `${item._id.slotDate}_${item._id.slotTime}`;
             bookingCountMap[key] = item.count;
         });
 
-        // Group slots by date
+        // Generate slots based on working hours configuration
         const slotsByDate = {};
+        const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
-        for (const slot of slots) {
-            // Skip holidays
-            if (holidayDates.has(slot.date)) continue;
+        // Iterate through dates in range
+        for (let d = new Date(startDateObj); d <= endDateObj; d.setDate(d.getDate() + 1)) {
+            const dateKey = `${String(d.getDate()).padStart(2, '0')}_${String(d.getMonth() + 1).padStart(2, '0')}_${d.getFullYear()}`;
 
-            // Parse slot date and time to check if it's in the past
-            const [day, month, year] = slot.date.split('_').map(Number);
-            const slotDate = new Date(year, month - 1, day);
+            // Skip if holiday
+            if (holidayDates.has(dateKey)) continue;
 
-            // Skip past dates
-            const slotDateKey = slot.date;
-            const isToday = slotDateKey === todayKey;
-            const isPastDate = slotDate < new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            // Get day of week
+            const dayName = dayNames[d.getDay()];
+            const dayConfig = bookingConfig.workingHours[dayName];
 
-            if (isPastDate) continue;
+            // Skip if day is not enabled
+            if (!dayConfig || !dayConfig.enabled) continue;
 
-            // For today, check if the time slot has passed
-            if (isToday) {
-                // Parse time (format: "HH:MM AM/PM")
-                const timeMatch = slot.time.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
-                if (timeMatch) {
-                    let slotHour = parseInt(timeMatch[1]);
-                    const slotMinute = parseInt(timeMatch[2]);
-                    const period = timeMatch[3].toUpperCase();
+            // Parse working hours
+            const [startHour, startMin] = dayConfig.start.split(':').map(Number);
+            const [endHour, endMin] = dayConfig.end.split(':').map(Number);
 
-                    // Convert to 24-hour format
-                    if (period === 'PM' && slotHour !== 12) {
-                        slotHour += 12;
-                    } else if (period === 'AM' && slotHour === 12) {
-                        slotHour = 0;
-                    }
+            // Generate time slots for this day
+            const startMinutes = startHour * 60 + startMin;
+            const endMinutes = endHour * 60 + endMin;
+            const interval = bookingConfig.timeSlotInterval;
 
-                    // Skip if time has passed (with 12 hour buffer for advance booking)
-                    const slotDateTime = new Date(year, month - 1, day, slotHour, slotMinute);
-                    const hoursUntil = (slotDateTime - now) / (1000 * 60 * 60);
+            const daySlots = [];
 
-                    if (hoursUntil < 12) continue; // 12-hour advance booking requirement
-                }
+            for (let minutes = startMinutes; minutes < endMinutes; minutes += interval) {
+                const slotHour = Math.floor(minutes / 60);
+                const slotMin = minutes % 60;
+
+                // Create slot datetime
+                const slotDateTime = new Date(d);
+                slotDateTime.setHours(slotHour, slotMin, 0, 0);
+
+                // Check if slot is in the past or within minimum notice
+                const timeUntilSlot = slotDateTime - now;
+                if (timeUntilSlot < minimumNoticeMs) continue;
+
+                // Format time in 12-hour format with AM/PM
+                let displayHour = slotHour;
+                const period = slotHour >= 12 ? 'PM' : 'AM';
+                if (displayHour === 0) displayHour = 12;
+                else if (displayHour > 12) displayHour -= 12;
+
+                const timeStr = `${String(displayHour).padStart(2, '0')}:${String(slotMin).padStart(2, '0')} ${period}`;
+
+                // Check booking count
+                const bookingKey = `${dateKey}_${timeStr}`;
+                const bookingCount = bookingCountMap[bookingKey] || 0;
+
+                // Calculate available seats
+                const maxSeats = bookingConfig.offerSeats ? bookingConfig.seatsPerSlot : 1;
+                const availableSeats = Math.max(0, maxSeats - bookingCount);
+
+                daySlots.push({
+                    time: timeStr,
+                    totalSeats: maxSeats,
+                    bookedSeats: bookingCount,
+                    availableSeats: availableSeats,
+                    datetime: slotDateTime
+                });
             }
 
-            // Get booking count from map (O(1) lookup instead of database query)
-            const bookingKey = `${slot.date}_${slot.time}`;
-            const bookingCount = bookingCountMap[bookingKey] || 0;
-
-            const availableSeats = Math.max(0, slot.maxSeats - bookingCount);
-
-            // Add slot to the date group
-            if (!slotsByDate[slot.date]) {
-                slotsByDate[slot.date] = [];
+            if (daySlots.length > 0) {
+                slotsByDate[dateKey] = daySlots;
             }
-
-            // Calculate datetime for this slot
-            const timeMatch = slot.time.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
-            let slotHour = 10; // default
-            let slotMinute = 0;
-
-            if (timeMatch) {
-                slotHour = parseInt(timeMatch[1]);
-                slotMinute = parseInt(timeMatch[2]);
-                const period = timeMatch[3].toUpperCase();
-
-                if (period === 'PM' && slotHour !== 12) {
-                    slotHour += 12;
-                } else if (period === 'AM' && slotHour === 12) {
-                    slotHour = 0;
-                }
-            }
-
-            slotsByDate[slot.date].push({
-                time: slot.time,
-                totalSeats: slot.maxSeats,
-                bookedSeats: bookingCount,
-                availableSeats: availableSeats,
-                datetime: new Date(year, month - 1, day, slotHour, slotMinute)
-            });
         }
+
+        // Get all custom slots and merge/override
+        const customSlots = await customSlotModel.find({});
+
+        for (const customSlot of customSlots) {
+            const { date: dateKey, time, enabled, maxSeats, isCustom } = customSlot;
+
+            // Skip if date is not in our range or if slot is disabled
+            if (!slotsByDate[dateKey] && !isCustom) continue;
+
+            // Initialize array if it doesn't exist (for custom dates)
+            if (!slotsByDate[dateKey]) {
+                slotsByDate[dateKey] = [];
+            }
+
+            // Find if this slot already exists
+            const existingSlotIndex = slotsByDate[dateKey].findIndex(s => s.time === time);
+
+            if (!enabled) {
+                // Remove the slot if it exists and is disabled
+                if (existingSlotIndex !== -1) {
+                    slotsByDate[dateKey].splice(existingSlotIndex, 1);
+                }
+            } else {
+                // Slot is enabled
+                if (existingSlotIndex === -1 && isCustom) {
+                    // Add custom slot if it doesn't exist (only for isCustom=true)
+                    const timeMatch = time.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+                    if (timeMatch) {
+                        let hour = parseInt(timeMatch[1]);
+                        const minute = parseInt(timeMatch[2]);
+                        const period = timeMatch[3].toUpperCase();
+
+                        if (period === 'PM' && hour !== 12) hour += 12;
+                        else if (period === 'AM' && hour === 12) hour = 0;
+
+                        const [day, month, year] = dateKey.split('_').map(Number);
+                        const slotDateTime = new Date(year, month - 1, day, hour, minute, 0, 0);
+
+                        // Check if slot is in the past
+                        const timeUntilSlot = slotDateTime - now;
+                        if (timeUntilSlot < minimumNoticeMs) continue;
+
+                        const bookingKey = `${dateKey}_${time}`;
+                        const bookingCount = bookingCountMap[bookingKey] || 0;
+                        const availableSeats = Math.max(0, maxSeats - bookingCount);
+
+                        slotsByDate[dateKey].push({
+                            time,
+                            totalSeats: maxSeats,
+                            bookedSeats: bookingCount,
+                            availableSeats,
+                            datetime: slotDateTime,
+                            isCustom: true
+                        });
+                    }
+                } else if (existingSlotIndex !== -1) {
+                    // Update existing slot with custom maxSeats (for both custom additions and modified auto-generated slots)
+                    const bookingKey = `${dateKey}_${time}`;
+                    const bookingCount = bookingCountMap[bookingKey] || 0;
+                    slotsByDate[dateKey][existingSlotIndex].totalSeats = maxSeats;
+                    slotsByDate[dateKey][existingSlotIndex].availableSeats = Math.max(0, maxSeats - bookingCount);
+                }
+            }
+        }
+
+        // Sort slots by time for each date
+        Object.keys(slotsByDate).forEach(dateKey => {
+            slotsByDate[dateKey].sort((a, b) => a.datetime - b.datetime);
+        });
 
         // Build response
         const result = Object.entries(slotsByDate).map(([date, slots]) => ({
@@ -208,14 +308,12 @@ const bookAppointment = async (req, res) => {
             return res.json({ success: false, message: 'Invalid date format' });
         }
 
-        // Check if slot exists and is enabled
-        const slot = await slotModel.findOne({ date: normalizedDate, time: slotTime });
-        if (!slot) {
-            return res.json({ success: false, message: 'Slot not found' });
-        }
-
-        if (!slot.isEnabled) {
-            return res.json({ success: false, message: 'This slot is currently disabled' });
+        // Get booking configuration
+        let bookingConfig = await bookingConfigModel.findOne();
+        if (!bookingConfig) {
+            // Create default config if none exists
+            bookingConfig = new bookingConfigModel();
+            await bookingConfig.save();
         }
 
         // Check if date is a holiday
@@ -224,10 +322,40 @@ const bookAppointment = async (req, res) => {
             return res.json({ success: false, message: 'Booking not available on holidays' });
         }
 
+        // Parse date and request date
+        const [day, month, year] = normalizedDate.split('_').map(Number);
+        const requestDate = new Date(year, month - 1, day);
+
+        // Validate date is within configured availability range (if set)
+        if (bookingConfig.startDate && bookingConfig.endDate) {
+            const checkDate = new Date(requestDate);
+            checkDate.setHours(0, 0, 0, 0);
+
+            const configStartDate = new Date(bookingConfig.startDate);
+            configStartDate.setHours(0, 0, 0, 0);
+
+            const configEndDate = new Date(bookingConfig.endDate);
+            configEndDate.setHours(23, 59, 59, 999);
+
+            if (checkDate < configStartDate || checkDate > configEndDate) {
+                return res.json({
+                    success: false,
+                    message: 'Selected date is outside the available booking period'
+                });
+            }
+        }
+
+        // Validate that the requested slot is within working hours
+        const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        const dayName = dayNames[requestDate.getDay()];
+        const dayConfig = bookingConfig.workingHours[dayName];
+
+        if (!dayConfig || !dayConfig.enabled) {
+            return res.json({ success: false, message: 'Bookings not available on this day' });
+        }
+
         // Parse the appointment date for time validation
         const appointmentDate = parseSlotDate(normalizedDate);
-
-        // Check if appointment is at least 12 hours from now
         const now = new Date();
         const appointmentDateTime = new Date(appointmentDate);
 
@@ -244,27 +372,96 @@ const bookAppointment = async (req, res) => {
 
         appointmentDateTime.setHours(hour, minute, 0, 0);
 
-        const hoursUntilAppointment = (appointmentDateTime - now) / (1000 * 60 * 60);
-        if (hoursUntilAppointment < 12) {
-            return res.json({ success: false, message: 'Appointments must be booked at least 12 hours in advance' });
+        // Check if this is a custom slot (custom slots can be outside working hours)
+        const customSlot = await customSlotModel.findOne({
+            date: normalizedDate,
+            time: slotTime
+        });
+
+        // Validate time is within working hours (skip validation for custom slots)
+        if (!customSlot) {
+            const [startHour, startMin] = dayConfig.start.split(':').map(Number);
+            const [endHour, endMin] = dayConfig.end.split(':').map(Number);
+            const slotMinutes = hour * 60 + minute;
+            const startMinutes = startHour * 60 + startMin;
+            const endMinutes = endHour * 60 + endMin;
+
+            if (slotMinutes < startMinutes || slotMinutes >= endMinutes) {
+                return res.json({ success: false, message: 'Selected time is outside working hours' });
+            }
+        } else if (!customSlot.enabled) {
+            // Custom slot exists but is disabled
+            return res.json({ success: false, message: 'Selected slot is not available' });
         }
 
-        // Count existing bookings for this slot
+        // Calculate minimum notice in milliseconds
+        const minimumNoticeMs = calculateNoticeInMs(bookingConfig.minimumNotice, bookingConfig.minimumNoticeUnit);
+        const timeUntilAppointment = appointmentDateTime - now;
+
+        if (timeUntilAppointment < minimumNoticeMs) {
+            const noticeText = formatNoticeText(bookingConfig.minimumNotice, bookingConfig.minimumNoticeUnit);
+            return res.json({
+                success: false,
+                message: `Appointments must be booked at least ${noticeText} in advance`
+            });
+        }
+
+        // Check future booking limit
+        const futureBookingLimitMs = calculateFutureBookingLimit(
+            bookingConfig.limitFutureBookingValue,
+            bookingConfig.limitFutureBookingUnit
+        );
+        if (timeUntilAppointment > futureBookingLimitMs) {
+            const limitText = formatNoticeText(
+                bookingConfig.limitFutureBookingValue,
+                bookingConfig.limitFutureBookingUnit
+            );
+            return res.json({
+                success: false,
+                message: `Bookings can only be made up to ${limitText} in advance`
+            });
+        }
+
+        // Check limit on upcoming bookings per user
+        if (bookingConfig.limitUpcomingBookings > 0) {
+            const userUpcomingBookings = await appointmentModel.countDocuments({
+                patientMobile,
+                cancelled: false,
+                slotDate: { $gte: normalizedDate }
+            });
+
+            if (userUpcomingBookings >= bookingConfig.limitUpcomingBookings) {
+                return res.json({
+                    success: false,
+                    message: `You can only have ${bookingConfig.limitUpcomingBookings} upcoming booking(s) at a time`
+                });
+            }
+        }
+
+        // Count existing bookings for this slot using configured seats
         const existingBookings = await appointmentModel.countDocuments({
             slotDate: normalizedDate,
             slotTime: slotTime,
             cancelled: false
         });
 
-        if (existingBookings >= slot.maxSeats) {
+        // Determine max seats: use custom slot's maxSeats if it exists, otherwise use config
+        let maxSeats;
+        if (customSlot) {
+            maxSeats = customSlot.maxSeats;
+        } else {
+            maxSeats = bookingConfig.offerSeats ? bookingConfig.seatsPerSlot : 1;
+        }
+
+        if (existingBookings >= maxSeats) {
             return res.json({ success: false, message: 'Slot Not Available' });
         }
 
-        // Calculate cancellation deadline (12 hours before appointment)
+        // Calculate cancellation deadline based on minimum notice
         const cancellationDeadline = new Date(appointmentDateTime);
-        cancellationDeadline.setHours(cancellationDeadline.getHours() - 12);
+        cancellationDeadline.setTime(cancellationDeadline.getTime() - minimumNoticeMs);
 
-        // Create appointment
+        // Create appointment with config-based title and description
         const appointmentData = {
             slotDate: normalizedDate,
             slotTime,
@@ -275,7 +472,10 @@ const bookAppointment = async (req, res) => {
             notes: notes || '',
             date: Date.now(),
             isGuestBooking: true,
-            cancellationDeadline: cancellationDeadline
+            cancellationDeadline: cancellationDeadline,
+            eventTitle: bookingConfig.eventTitle,
+            eventDescription: bookingConfig.eventDescription,
+            eventDuration: bookingConfig.eventDuration
         };
 
         const newAppointment = new appointmentModel(appointmentData);
@@ -297,12 +497,19 @@ const bookAppointment = async (req, res) => {
                 console.error('❌ Google Calendar error:', err.message);
             });
 
-        res.json({
+        // Handle redirect if configured
+        const response = {
             success: true,
             message: 'Appointment Booked Successfully',
             appointmentId: newAppointment._id,
             cancellationDeadline: cancellationDeadline
-        });
+        };
+
+        if (bookingConfig.redirectUrl) {
+            response.redirectUrl = bookingConfig.redirectUrl;
+        }
+
+        res.json(response);
 
     } catch (error) {
         console.log('Error in bookAppointment:', error);
