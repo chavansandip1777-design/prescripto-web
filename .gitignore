@@ -1,3 +1,6 @@
 node_modules
 
-*.env 
+*.env
+
+# Google Calendar credentials (sensitive)
+**/google-calendar-credentials.json 
