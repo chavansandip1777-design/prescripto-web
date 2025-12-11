@@ -4,7 +4,6 @@ const bookingConfigSchema = new mongoose.Schema({
     // Basics
     eventTitle: { type: String, default: 'Book your appointment' },
     eventDescription: { type: String, default: '' },
-    eventDuration: { type: Number, default: 30 },
 
     // Availability - Date Range
     startDate: { type: Date, default: null },

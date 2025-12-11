@@ -17,6 +17,30 @@ const BookAppointmentNew = () => {
     const [isLoading, setIsLoading] = useState(false)
     const [isCalendarLoading, setIsCalendarLoading] = useState(true)
     
+    // Booking config state
+    const [bookingConfig, setBookingConfig] = useState({
+        eventTitle: '',
+        eventDescription: '',
+        startDate: null,
+        endDate: null,
+        workingHours: {
+            monday: { enabled: true, start: '10:00', end: '17:00' },
+            tuesday: { enabled: true, start: '10:00', end: '17:00' },
+            wednesday: { enabled: true, start: '10:00', end: '17:00' },
+            thursday: { enabled: true, start: '10:00', end: '17:00' },
+            friday: { enabled: true, start: '10:00', end: '17:00' },
+            saturday: { enabled: false, start: '00:00', end: '00:00' },
+            sunday: { enabled: false, start: '00:00', end: '00:00' }
+        },
+        minimumNotice: 0,
+        minimumNoticeUnit: 'hours',
+        limitFutureBookingValue: 3,
+        limitFutureBookingUnit: 'days',
+        seatsPerSlot: 1,
+        offerSeats: false
+    })
+    const [bookingConfigLoaded, setBookingConfigLoaded] = useState(false)
+    
     // Form step
     const [step, setStep] = useState(1) // 1: Calendar & Slots, 2: Form
     
@@ -28,6 +52,46 @@ const BookAppointmentNew = () => {
         address: '',
         notes: ''
     })
+
+    // Get booking configuration
+    const getBookingConfig = async () => {
+        try {
+            console.log('[BookAppointmentNew] Fetching booking config...')
+            // add cache-busting query param and request no-cache to avoid 304 Not Modified responses
+            const res = await axios.get(backendUrl + '/api/booking/config?_=' + Date.now(), { headers: { 'Cache-Control': 'no-cache' } })
+            console.log('[BookAppointmentNew] Booking config response status:', res.status)
+
+            const data = res.data
+            console.log('[BookAppointmentNew] Booking config response data:', data)
+
+            if (res.status === 200 && data && data.success && data.config) {
+                console.log('[BookAppointmentNew] Setting booking config:', data.config)
+                const cfg = data.config
+                setBookingConfig(prev => ({
+                    ...prev,
+                    eventTitle: cfg.eventTitle || prev.eventTitle,
+                    eventDescription: cfg.eventDescription || prev.eventDescription,
+                    startDate: cfg.startDate || prev.startDate,
+                    endDate: cfg.endDate || prev.endDate,
+                    workingHours: cfg.workingHours || prev.workingHours,
+                    minimumNotice: cfg.minimumNotice || prev.minimumNotice,
+                    minimumNoticeUnit: cfg.minimumNoticeUnit || prev.minimumNoticeUnit,
+                    limitFutureBookingValue: cfg.limitFutureBookingValue || prev.limitFutureBookingValue,
+                    limitFutureBookingUnit: cfg.limitFutureBookingUnit || prev.limitFutureBookingUnit,
+                    seatsPerSlot: cfg.seatsPerSlot || prev.seatsPerSlot,
+                    offerSeats: typeof cfg.offerSeats !== 'undefined' ? cfg.offerSeats : prev.offerSeats
+                }))
+            } else {
+                console.log('[BookAppointmentNew] Booking config not returned (status:', res.status, ')')
+            }
+        } catch (error) {
+            console.error('[BookAppointmentNew] Error fetching booking config:', error)
+            // Keep defaults if fetch fails
+        } finally {
+            // Always mark loaded so UI doesn't get stuck on Loading...
+            setBookingConfigLoaded(true)
+        }
+    }
 
     // Get availability
     const getAvailability = async () => {
@@ -210,6 +274,12 @@ const BookAppointmentNew = () => {
 
     useEffect(() => {
         if (backendUrl) {
+            getBookingConfig()
+        }
+    }, [backendUrl])
+
+    useEffect(() => {
+        if (backendUrl) {
             getAvailability()
             // Reset selection when month changes
             setSelectedDate(null)
@@ -240,9 +310,13 @@ const BookAppointmentNew = () => {
                                 🏥
                             </div>
                             <div>
-                                <h3 className='text-sm text-gray-600'>Doctor Appointment</h3>
-                                <h1 className='text-2xl font-semibold text-gray-900'>Book Your Consultation</h1>
-                                <p className='text-sm text-gray-600'>Professional medical consultation</p>
+                                <h3 className='text-sm text-gray-600'>Book Appointment</h3>
+                                <h1 className='text-2xl font-semibold text-gray-900'>
+                                    {bookingConfigLoaded ? (bookingConfig.eventTitle || 'Doctor Appointment') : 'Loading...'}
+                                </h1>
+                                <p className='text-sm text-gray-600'>
+                                    {bookingConfigLoaded ? (bookingConfig.eventDescription || 'Professional medical consultation') : ''}
+                                </p>
                             </div>
                         </div>
 
@@ -392,25 +466,31 @@ const BookAppointmentNew = () => {
                                         🏥
                                     </div>
                                     <div>
-                                        <h3 className='text-sm text-gray-600'>Doctor Appointment</h3>
-                                        <h1 className='text-2xl font-semibold text-gray-900'>Book Your Consultation</h1>
-                                        <p className='text-sm text-gray-600'>Professional medical consultation</p>
+                                        <h3 className='text-sm text-gray-600'>Book Appointment</h3>
+                                        <h1 className='text-2xl font-semibold text-gray-900'>
+                                            {bookingConfigLoaded ? (bookingConfig.eventTitle || 'Doctor Appointment') : 'Loading...'}
+                                        </h1>
+                                        <p className='text-sm text-gray-600'>
+                                            {bookingConfigLoaded ? (bookingConfig.eventDescription || 'Professional medical consultation') : ''}
+                                        </p>
                                     </div>
                                 </div>
 
                                 <div className='space-y-2 text-sm text-gray-700'>
-                                    <div className='flex items-center gap-2'>
-                                        <span>⏱️</span>
-                                        <span>30m</span>
-                                    </div>
-                                    <div className='flex items-center gap-2'>
-                                        <span>📍</span>
-                                        <span>In Person (Attendee Address)</span>
-                                    </div>
-                                    <div className='flex items-center gap-2'>
-                                        <span>🌏</span>
-                                        <span>Asia/Kolkata</span>
-                                    </div>
+                                    {bookingConfig.startDate && bookingConfig.endDate ? (
+                                        <div className='flex items-center gap-2'>
+                                            <span>📅</span>
+                                            <span>
+                                                {new Date(bookingConfig.startDate).toLocaleDateString()} 
+                                                &nbsp;-&nbsp; {new Date(bookingConfig.endDate).toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <div className='flex items-center gap-2'>
+                                            <span>📅</span>
+                                            <span>Available: All upcoming dates</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 

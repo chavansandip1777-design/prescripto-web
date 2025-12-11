@@ -19,6 +19,33 @@ const BookAppointment = () => {
     const [patientMobile, setPatientMobile] = useState('')
     const [isBooking, setIsBooking] = useState(false)
     const [isSlotsLoading, setIsSlotsLoading] = useState(false)
+    
+    // Booking config from admin
+    const [bookingConfig, setBookingConfig] = useState({
+        eventTitle: 'Book an Appointment',
+        eventDescription: 'Select a convenient date and time for your appointment',
+        // limits
+        minimumNotice: 12,
+        minimumNoticeUnit: 'hours',
+        limitFutureBookingValue: 30,
+        limitFutureBookingUnit: 'days',
+        // seats
+        offerSeats: false,
+        seatsPerSlot: 1,
+        // date range
+        startDate: null,
+        endDate: null,
+        // working hours
+        workingHours: {
+            monday: { enabled: true, start: '10:30', end: '18:30' },
+            tuesday: { enabled: true, start: '10:30', end: '18:30' },
+            wednesday: { enabled: true, start: '10:30', end: '18:30' },
+            thursday: { enabled: true, start: '10:30', end: '18:30' },
+            friday: { enabled: true, start: '10:30', end: '18:30' },
+            saturday: { enabled: true, start: '10:30', end: '18:30' },
+            sunday: { enabled: false, start: '10:30', end: '18:30' }
+        }
+    })
 
     // Helper function to normalize date
     const normalizeSlotDateKey = (dateStr) => {
@@ -85,6 +112,40 @@ const BookAppointment = () => {
         }
     }
 
+    // Get booking configuration (title, description, duration, limits)
+    const getBookingConfig = async () => {
+        try {
+            // cache-busting to avoid 304 Not Modified and ensure fresh config
+            const res = await axios.get(backendUrl + '/api/booking/config?_=' + Date.now(), { headers: { 'Cache-Control': 'no-cache' } })
+            const data = res.data
+            if (res.status === 200 && data && data.success && data.config) {
+                const cfg = data.config
+                setBookingConfig(prev => ({
+                    ...prev,
+                    eventTitle: cfg.eventTitle || prev.eventTitle,
+                    eventDescription: cfg.eventDescription || prev.eventDescription,
+                    minimumNotice: cfg.minimumNotice ?? prev.minimumNotice,
+                    minimumNoticeUnit: cfg.minimumNoticeUnit || prev.minimumNoticeUnit,
+                    limitFutureBookingValue: cfg.limitFutureBookingValue ?? prev.limitFutureBookingValue,
+                    limitFutureBookingUnit: cfg.limitFutureBookingUnit || prev.limitFutureBookingUnit,
+                    offerSeats: cfg.offerSeats ?? prev.offerSeats,
+                    seatsPerSlot: cfg.seatsPerSlot ?? prev.seatsPerSlot,
+                    startDate: cfg.startDate || prev.startDate,
+                    endDate: cfg.endDate || prev.endDate,
+                    workingHours: cfg.workingHours || prev.workingHours
+                }))
+            } else {
+                console.log('Booking config not returned, status:', res.status)
+            }
+        } catch (error) {
+            console.error('Failed to fetch booking config', error)
+        } finally {
+            setBookingConfigLoaded(true)
+        }
+    }
+
+    const [bookingConfigLoaded, setBookingConfigLoaded] = useState(false)
+
     // Book appointment
     const bookAppointment = async () => {
         if (!slotTime) {
@@ -147,21 +208,58 @@ const BookAppointment = () => {
     }
 
     useEffect(() => {
+        if (!backendUrl) return
+        // Fetch booking config first, then availability
+        getBookingConfig()
         getAvailability()
-    }, [])
+    }, [backendUrl])
 
     return (
         <div className='max-w-6xl mx-auto p-4'>
             <div className='text-center mb-8'>
-                <h1 className='text-3xl font-bold text-gray-800 mb-2'>Book an Appointment</h1>
+                <h1 className='text-3xl font-bold text-gray-800 mb-2'>
+                    {bookingConfigLoaded ? (bookingConfig.eventTitle || 'Book an Appointment') : 'Loading...'}
+                </h1>
                 <p className='text-gray-600'>
-                    Select a convenient date and time for your appointment
+                    {bookingConfigLoaded ? (bookingConfig.eventDescription || 'Select a convenient date and time for your appointment') : ''}
                 </p>
                 <div className='mt-4 bg-blue-50 p-4 rounded-lg'>
                     <div className='text-sm text-blue-800'>
-                        <p><strong>Availability:</strong> Monday – Friday, 10:00 AM – 5:00 PM</p>
+                        {/* Date range if configured */}
+                        {bookingConfig.startDate && bookingConfig.endDate ? (
+                            <p>
+                                <strong>Available From:</strong> {new Date(bookingConfig.startDate).toLocaleDateString()} 
+                                &nbsp;-&nbsp; {new Date(bookingConfig.endDate).toLocaleDateString()}
+                            </p>
+                        ) : (
+                            <p><strong>Available From:</strong> All upcoming dates</p>
+                        )}
+
+                        {/* Working hours summary */}
+                        <p>
+                            <strong>Working Hours:</strong>
+                            {Object.entries(bookingConfig.workingHours).map(([day, cfg]) => (
+                                <span key={day} className='ml-2'>
+                                    {day.charAt(0).toUpperCase() + day.slice(1,3)}: {cfg.enabled ? `${cfg.start} - ${cfg.end}` : 'Closed'}{
+                                        /* separator */
+                                    }
+                                </span>
+                            ))}
+                        </p>
+
                         <p><strong>Duration:</strong> 30 minutes per slot</p>
-                        <p><strong>Cancellation:</strong> Up to 12 hours before appointment</p>
+
+                        <p>
+                            <strong>Booking window:</strong> Up to {bookingConfig.limitFutureBookingValue} {bookingConfig.limitFutureBookingUnit}
+                        </p>
+
+                        <p>
+                            <strong>Minimum notice:</strong> {bookingConfig.minimumNotice} {bookingConfig.minimumNoticeUnit}
+                        </p>
+
+                        <p>
+                            <strong>Seats per slot:</strong> {bookingConfig.offerSeats ? bookingConfig.seatsPerSlot : '1 (single)'}
+                        </p>
                     </div>
                 </div>
             </div>

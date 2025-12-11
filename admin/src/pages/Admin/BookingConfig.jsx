@@ -40,9 +40,13 @@ const BookingConfig = () => {
 
     const fetchConfig = async () => {
         try {
+            console.log('[BookingConfig] Fetching config from backend...')
             const { data } = await axios.get(backendUrl + '/api/admin/booking-config', { headers: { aToken } })
+            console.log('[BookingConfig] Fetch response:', data)
+            
             if (data.success && data.config) {
                 const config = data.config
+                console.log('[BookingConfig] Setting config state:', config)
                 
                 // Basics
                 setEventTitle(config.eventTitle || '')
@@ -66,8 +70,14 @@ const BookingConfig = () => {
                 setRedirectUrl(config.redirectUrl || '')
                 setSeatsPerSlot(config.seatsPerSlot || 1)
                 setOfferSeats(config.offerSeats || false)
+                
+                console.log('[BookingConfig] Config state updated successfully')
+            } else {
+                console.error('[BookingConfig] Fetch failed:', data.message)
+                toast.error(data.message || 'Failed to fetch config')
             }
         } catch (error) {
+            console.error('[BookingConfig] Fetch error:', error)
             toast.error(error.message)
         }
     }
@@ -97,18 +107,25 @@ const BookingConfig = () => {
                 offerSeats
             }
 
+            console.log('[BookingConfig] Saving config with data:', configData)
             const { data } = await axios.post(
                 backendUrl + '/api/admin/booking-config',
                 configData,
                 { headers: { aToken } }
             )
             
+            console.log('[BookingConfig] Save response:', data)
             if (data.success) {
                 toast.success('Configuration saved successfully')
+                // Refresh the config to confirm changes were persisted
+                console.log('[BookingConfig] Refreshing config after save...')
+                setTimeout(() => fetchConfig(), 500)
             } else {
+                console.error('[BookingConfig] Save failed:', data.message)
                 toast.error(data.message)
             }
         } catch (error) {
+            console.error('[BookingConfig] Save error:', error)
             toast.error(error.message)
         }
     }
@@ -124,8 +141,10 @@ const BookingConfig = () => {
     }
 
     useEffect(() => {
-        fetchConfig()
-    }, [])
+        if (aToken) {
+            fetchConfig()
+        }
+    }, [aToken])
 
     const tabs = [
         { id: 'basics', label: 'Basics', icon: '🔗' },

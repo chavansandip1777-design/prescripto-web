@@ -425,17 +425,21 @@ const bulkCreateSlots = async (req, res) => {
 // API to get booking configuration
 const getBookingConfig = async (req, res) => {
     try {
+        console.log('[getBookingConfig] Fetching booking config')
         let config = await bookingConfigModel.findOne()
 
         // If no config exists, create default one
         if (!config) {
+            console.log('[getBookingConfig] No config found, creating default')
             config = new bookingConfigModel()
             await config.save()
+            console.log('[getBookingConfig] Default config created')
         }
 
+        console.log('[getBookingConfig] Returning config:', JSON.stringify(config, null, 2))
         res.json({ success: true, config })
     } catch (error) {
-        console.log(error)
+        console.log('[getBookingConfig] Error:', error)
         res.json({ success: false, message: error.message })
     }
 }
@@ -444,23 +448,52 @@ const getBookingConfig = async (req, res) => {
 const updateBookingConfig = async (req, res) => {
     try {
         const configData = req.body
+        console.log('[updateBookingConfig] Received config data:', JSON.stringify(configData, null, 2))
 
         let config = await bookingConfigModel.findOne()
+        console.log('[updateBookingConfig] Found existing config:', !!config)
 
         if (config) {
-            // Update existing config
-            Object.assign(config, configData)
+            // Update existing config - properly handle nested objects
+            console.log('[updateBookingConfig] Updating existing config')
+
+            // Update basic fields
+            if (configData.eventTitle !== undefined) config.eventTitle = configData.eventTitle
+            if (configData.eventDescription !== undefined) config.eventDescription = configData.eventDescription
+
+            // Update availability
+            if (configData.workingHours !== undefined) config.workingHours = configData.workingHours
+            if (configData.startDate !== undefined) config.startDate = configData.startDate
+            if (configData.endDate !== undefined) config.endDate = configData.endDate
+
+            // Update limits
+            if (configData.minimumNotice !== undefined) config.minimumNotice = configData.minimumNotice
+            if (configData.minimumNoticeUnit !== undefined) config.minimumNoticeUnit = configData.minimumNoticeUnit
+            if (configData.timeSlotInterval !== undefined) config.timeSlotInterval = configData.timeSlotInterval
+            if (configData.limitUpcomingBookings !== undefined) config.limitUpcomingBookings = configData.limitUpcomingBookings
+            if (configData.limitFutureBookingValue !== undefined) config.limitFutureBookingValue = configData.limitFutureBookingValue
+            if (configData.limitFutureBookingUnit !== undefined) config.limitFutureBookingUnit = configData.limitFutureBookingUnit
+
+            // Update advanced
+            if (configData.redirectUrl !== undefined) config.redirectUrl = configData.redirectUrl
+            if (configData.seatsPerSlot !== undefined) config.seatsPerSlot = configData.seatsPerSlot
+            if (configData.offerSeats !== undefined) config.offerSeats = configData.offerSeats
+
             config.updatedAt = Date.now()
             await config.save()
+            console.log('[updateBookingConfig] Config saved successfully')
         } else {
             // Create new config
+            console.log('[updateBookingConfig] Creating new config')
             config = new bookingConfigModel(configData)
             await config.save()
+            console.log('[updateBookingConfig] New config created successfully')
         }
 
+        console.log('[updateBookingConfig] Returning config:', JSON.stringify(config, null, 2))
         res.json({ success: true, message: 'Configuration updated successfully', config })
     } catch (error) {
-        console.log(error)
+        console.log('[updateBookingConfig] Error:', error)
         res.json({ success: false, message: error.message })
     }
 }
@@ -592,6 +625,7 @@ const getCustomSlotsByDate = async (req, res) => {
 const addCustomSlot = async (req, res) => {
     try {
         const { date, time, maxSeats, notes } = req.body
+        console.log('[addCustomSlot] Received:', { date, time, maxSeats, notes })
 
         if (!date || !time) {
             return res.json({ success: false, message: 'Date and time are required' })
@@ -600,6 +634,7 @@ const addCustomSlot = async (req, res) => {
         // Check if slot already exists
         const existingSlot = await customSlotModel.findOne({ date, time })
         if (existingSlot) {
+            console.log('[addCustomSlot] Slot already exists')
             return res.json({ success: false, message: 'Slot already exists for this date and time' })
         }
 
@@ -613,10 +648,11 @@ const addCustomSlot = async (req, res) => {
         })
 
         await newSlot.save()
+        console.log('[addCustomSlot] Slot saved successfully:', newSlot)
 
         res.json({ success: true, message: 'Custom slot added successfully', slot: newSlot })
     } catch (error) {
-        console.log(error)
+        console.log('[addCustomSlot] Error:', error)
         res.json({ success: false, message: error.message })
     }
 }
@@ -626,6 +662,7 @@ const updateCustomSlot = async (req, res) => {
     try {
         const { slotId, date, time } = req.body
         const { enabled, maxSeats, notes } = req.body
+        console.log('[updateCustomSlot] Received:', { slotId, date, time, enabled, maxSeats, notes })
 
         let slot
 
@@ -633,13 +670,17 @@ const updateCustomSlot = async (req, res) => {
         if (slotId) {
             slot = await customSlotModel.findById(slotId)
             if (!slot) {
+                console.log('[updateCustomSlot] Slot not found with ID:', slotId)
                 return res.json({ success: false, message: 'Slot not found' })
             }
+            console.log('[updateCustomSlot] Found slot by ID:', slot)
         } else if (date && time) {
+            console.log('[updateCustomSlot] Looking for slot by date and time')
             // If no slotId but date and time provided, create new custom slot entry
             slot = await customSlotModel.findOne({ date, time })
 
             if (!slot) {
+                console.log('[updateCustomSlot] Slot not found, creating new one')
                 slot = new customSlotModel({
                     date,
                     time,
@@ -648,6 +689,8 @@ const updateCustomSlot = async (req, res) => {
                     notes: notes || '',
                     isCustom: false // Override for auto-generated slot
                 })
+            } else {
+                console.log('[updateCustomSlot] Found existing slot:', slot)
             }
         } else {
             return res.json({ success: false, message: 'Either slotId or date and time are required' })
@@ -658,10 +701,11 @@ const updateCustomSlot = async (req, res) => {
         if (notes !== undefined) slot.notes = notes
 
         await slot.save()
+        console.log('[updateCustomSlot] Slot saved successfully:', slot)
 
         res.json({ success: true, message: 'Slot updated successfully', slot })
     } catch (error) {
-        console.log(error)
+        console.log('[updateCustomSlot] Error:', error)
         res.json({ success: false, message: error.message })
     }
 }

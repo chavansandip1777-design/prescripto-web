@@ -40,6 +40,7 @@ const CustomSlots = () => {
                 generateTimeOptions()
                 console.log('[fetchSlots] Slots state updated with', data.slots.length, 'slots')
             } else {
+                console.error('[fetchSlots] API returned success:false -', data.message)
                 toast.error(data.message)
             }
         } catch (error) {
@@ -78,6 +79,7 @@ const CustomSlots = () => {
             // Convert YYYY-MM-DD to DD_MM_YYYY
             const [year, month, day] = selectedDate.split('-')
             const formattedDate = `${day}_${month}_${year}`
+            console.log('[handleAddSlot] Adding slot for date:', formattedDate, 'time:', newSlot.time)
 
             const { data } = await axios.post(
                 backendUrl + '/api/admin/custom-slots/add',
@@ -90,15 +92,19 @@ const CustomSlots = () => {
                 { headers: { aToken } }
             )
             
+            console.log('[handleAddSlot] Response:', data)
             if (data.success) {
                 toast.success('Custom slot added successfully')
                 setShowAddForm(false)
                 setNewSlot({ time: '', maxSeats: 1, notes: '' })
+                console.log('[handleAddSlot] Refreshing slots...')
                 fetchSlots(formattedDate)
             } else {
+                console.error('[handleAddSlot] API returned success:false -', data.message)
                 toast.error(data.message)
             }
         } catch (error) {
+            console.error('[handleAddSlot] Error:', error)
             toast.error(error.message)
         }
     }
@@ -106,6 +112,7 @@ const CustomSlots = () => {
     // Toggle slot enabled/disabled
     const toggleSlot = async (slot, currentStatus) => {
         try {
+            console.log('[toggleSlot] Toggling slot:', slot.time, 'current status:', currentStatus)
             const payload = {
                 enabled: !currentStatus,
                 date: selectedDate.split('-').reverse().join('_'),
@@ -117,19 +124,23 @@ const CustomSlots = () => {
                 payload.slotId = slot._id
             }
 
+            console.log('[toggleSlot] Payload:', payload)
             const { data } = await axios.post(
                 backendUrl + `/api/admin/custom-slots/update`,
                 payload,
                 { headers: { aToken } }
             )
             
+            console.log('[toggleSlot] Response:', data)
             if (data.success) {
                 toast.success(`Slot ${!currentStatus ? 'enabled' : 'disabled'}`)
                 fetchSlots(selectedDate.split('-').reverse().join('_'))
             } else {
+                console.error('[toggleSlot] API returned success:false -', data.message)
                 toast.error(data.message)
             }
         } catch (error) {
+            console.error('[toggleSlot] Error:', error)
             toast.error(error.message)
         }
     }
@@ -137,6 +148,7 @@ const CustomSlots = () => {
     // Update slot seats
     const updateSlotSeats = async (slot, newSeats) => {
         try {
+            console.log('[updateSlotSeats] Updating slot:', slot.time, 'to seats:', newSeats)
             const payload = {
                 maxSeats: parseInt(newSeats),
                 date: selectedDate.split('-').reverse().join('_'),
@@ -147,19 +159,23 @@ const CustomSlots = () => {
                 payload.slotId = slot._id
             }
 
+            console.log('[updateSlotSeats] Payload:', payload)
             const { data } = await axios.post(
                 backendUrl + `/api/admin/custom-slots/update`,
                 payload,
                 { headers: { aToken } }
             )
             
+            console.log('[updateSlotSeats] Response:', data)
             if (data.success) {
                 toast.success('Seats updated')
                 fetchSlots(selectedDate.split('-').reverse().join('_'))
             } else {
+                console.error('[updateSlotSeats] API returned success:false -', data.message)
                 toast.error(data.message)
             }
         } catch (error) {
+            console.error('[updateSlotSeats] Error:', error)
             toast.error(error.message)
         }
     }

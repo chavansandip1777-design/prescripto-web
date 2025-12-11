@@ -1,10 +1,42 @@
-import React from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { AppContext } from '../context/AppContext'
+import axios from 'axios'
+import Loader from '../components/Loader'
 
 const BookingConfirmation = () => {
     const navigate = useNavigate()
+    const { backendUrl } = useContext(AppContext)
+    const [bookingConfig, setBookingConfig] = useState({
+        eventTitle: 'Doctor Appointment',
+        eventDescription: 'Medical Consultation'
+    })
+    const [configLoaded, setConfigLoaded] = useState(false)
 
-    // Get booking details from sessionStorage
+    // Get booking configuration
+    const getBookingConfig = async () => {
+        try {
+            const res = await axios.get(backendUrl + '/api/booking/config?_=' + Date.now(), { headers: { 'Cache-Control': 'no-cache' } })
+            if (res.status === 200 && res.data && res.data.success && res.data.config) {
+                const cfg = res.data.config
+                setBookingConfig(prev => ({
+                    ...prev,
+                    eventTitle: cfg.eventTitle || prev.eventTitle,
+                    eventDescription: cfg.eventDescription || prev.eventDescription
+                }))
+            }
+        } catch (error) {
+            console.error('[BookingConfirmation] Error fetching config:', error)
+        } finally {
+            setConfigLoaded(true)
+        }
+    }
+
+    useEffect(() => {
+        if (backendUrl) {
+            getBookingConfig()
+        }
+    }, [backendUrl])
     let booking = null
     try {
         const raw = sessionStorage.getItem('last_booking')
@@ -27,6 +59,14 @@ const BookingConfirmation = () => {
                         Book an appointment
                     </button>
                 </div>
+            </div>
+        )
+    }
+
+    if (!configLoaded) {
+        return (
+            <div className='min-h-screen bg-gray-50 flex items-center justify-center'>
+                <Loader size='xlarge' />
             </div>
         )
     }
@@ -80,8 +120,8 @@ const BookingConfirmation = () => {
                                 🏥
                             </div>
                             <div>
-                                <h3 className='font-semibold text-lg'>Doctor Appointment</h3>
-                                <p className='text-sm text-gray-600'>Medical Consultation</p>
+                                <h3 className='font-semibold text-lg'>{bookingConfig.eventTitle || 'Doctor Appointment'}</h3>
+                                <p className='text-sm text-gray-600'>{bookingConfig.eventDescription || 'Medical Consultation'}</p>
                             </div>
                         </div>
                     </div>
@@ -90,7 +130,7 @@ const BookingConfirmation = () => {
                         <div className='flex items-start gap-4'>
                             <div className='w-24 text-sm text-gray-600 font-medium'>What</div>
                             <div className='flex-1 text-sm text-gray-900'>
-                                Medical Consultation - Professional appointment
+                                {bookingConfig.eventDescription || 'Medical Consultation'} - Professional appointment
                             </div>
                         </div>
 
