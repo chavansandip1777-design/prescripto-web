@@ -531,7 +531,11 @@ const BookAppointmentNew = () => {
                                         const hasAvailability = availabilityMap[dateKey]?.some(s => s.availableSeats > 0)
                                         const isSelected = selectedDateKey === dateKey
                                         const isToday = date.toDateString() === new Date().toDateString()
-                                        const isPast = date < new Date(new Date().setHours(0, 0, 0, 0))
+                                        // Date is past only if it's before today (not including today)
+                                        const yesterday = new Date()
+                                        yesterday.setDate(yesterday.getDate() - 1)
+                                        yesterday.setHours(23, 59, 59, 999)
+                                        const isPast = date <= yesterday
 
                                         return (
                                             <button
