@@ -109,6 +109,12 @@ const getAvailability = async (req, res) => {
             if (startDateObj < minStartDate) {
                 startDateObj = minStartDate;
             }
+            
+            // Extend end date if future booking limit allows booking further out
+            const futureBookingEndDate = new Date(now.getTime() + futureBookingLimitMs);
+            if (futureBookingEndDate > endDateObj) {
+                endDateObj = futureBookingEndDate;
+            }
         } else {
             // Fallback to query params or defaults
             startDateObj = startDate ? new Date(startDate) : new Date(now.getTime() + minimumNoticeMs);

@@ -44,7 +44,8 @@ const BookAppointment = () => {
             friday: { enabled: true, start: '10:30', end: '18:30' },
             saturday: { enabled: true, start: '10:30', end: '18:30' },
             sunday: { enabled: false, start: '10:30', end: '18:30' }
-        }
+        },
+        redirectUrl: ''
     })
 
     // Helper function to normalize date
@@ -132,7 +133,8 @@ const BookAppointment = () => {
                     seatsPerSlot: cfg.seatsPerSlot ?? prev.seatsPerSlot,
                     startDate: cfg.startDate || prev.startDate,
                     endDate: cfg.endDate || prev.endDate,
-                    workingHours: cfg.workingHours || prev.workingHours
+                    workingHours: cfg.workingHours || prev.workingHours,
+                    redirectUrl: cfg.redirectUrl || prev.redirectUrl
                 }))
             } else {
                 console.log('Booking config not returned, status:', res.status)
@@ -194,7 +196,12 @@ const BookAppointment = () => {
                     appointmentId: data.appointmentId
                 }))
                 
-                navigate(`/booking-confirmation?slotDate=${selectedDateKey}&slotTime=${slotTime}&name=${encodeURIComponent(patientName)}&phone=${patientMobile}`)
+                // Use configured redirect URL or default to booking confirmation
+                if (bookingConfig.redirectUrl && bookingConfig.redirectUrl.trim() !== '') {
+                    window.location.href = bookingConfig.redirectUrl
+                } else {
+                    navigate(`/booking-confirmation?slotDate=${selectedDateKey}&slotTime=${slotTime}&name=${encodeURIComponent(patientName)}&phone=${patientMobile}`)
+                }
             } else {
                 toast.error(data.message)
             }

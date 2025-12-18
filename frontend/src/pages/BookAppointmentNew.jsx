@@ -37,7 +37,8 @@ const BookAppointmentNew = () => {
         limitFutureBookingValue: 3,
         limitFutureBookingUnit: 'days',
         seatsPerSlot: 1,
-        offerSeats: false
+        offerSeats: false,
+        redirectUrl: ''
     })
     const [bookingConfigLoaded, setBookingConfigLoaded] = useState(false)
     
@@ -79,7 +80,8 @@ const BookAppointmentNew = () => {
                     limitFutureBookingValue: cfg.limitFutureBookingValue || prev.limitFutureBookingValue,
                     limitFutureBookingUnit: cfg.limitFutureBookingUnit || prev.limitFutureBookingUnit,
                     seatsPerSlot: cfg.seatsPerSlot || prev.seatsPerSlot,
-                    offerSeats: typeof cfg.offerSeats !== 'undefined' ? cfg.offerSeats : prev.offerSeats
+                    offerSeats: typeof cfg.offerSeats !== 'undefined' ? cfg.offerSeats : prev.offerSeats,
+                    redirectUrl: cfg.redirectUrl || prev.redirectUrl
                 }))
             } else {
                 console.log('[BookAppointmentNew] Booking config not returned (status:', res.status, ')')
@@ -208,7 +210,12 @@ const BookAppointmentNew = () => {
                     appointmentId: data.appointmentId
                 }))
                 
-                navigate('/booking-confirmation')
+                // Use configured redirect URL or default to booking confirmation
+                if (bookingConfig.redirectUrl && bookingConfig.redirectUrl.trim() !== '') {
+                    window.location.href = bookingConfig.redirectUrl
+                } else {
+                    navigate('/booking-confirmation')
+                }
             } else {
                 toast.error(data.message)
             }

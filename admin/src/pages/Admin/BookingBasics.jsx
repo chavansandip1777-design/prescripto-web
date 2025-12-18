@@ -9,7 +9,6 @@ const BookingBasics = () => {
 
     const [eventTitle, setEventTitle] = useState('')
     const [eventDescription, setEventDescription] = useState('')
-    const [eventDuration, setEventDuration] = useState(30)
 
     const fetchConfig = async () => {
         try {
@@ -17,7 +16,6 @@ const BookingBasics = () => {
             if (data.success && data.config) {
                 setEventTitle(data.config.eventTitle || '')
                 setEventDescription(data.config.eventDescription || '')
-                setEventDuration(data.config.eventDuration || 30)
             }
         } catch (error) {
             toast.error(error.message)
@@ -28,7 +26,7 @@ const BookingBasics = () => {
         try {
             const { data } = await axios.post(
                 backendUrl + '/api/admin/booking-config',
-                { eventTitle, eventDescription, eventDuration },
+                { eventTitle, eventDescription },
                 { headers: { aToken } }
             )
             
@@ -81,21 +79,6 @@ const BookingBasics = () => {
                         className='w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary focus:border-transparent'
                     />
                     <p className='text-sm text-gray-500 mt-1'>Provide details about what to expect during the appointment</p>
-                </div>
-
-                <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
-                        Duration (minutes)
-                    </label>
-                    <input
-                        type='number'
-                        value={eventDuration}
-                        onChange={(e) => setEventDuration(Number(e.target.value))}
-                        min='15'
-                        step='15'
-                        className='w-full max-w-xs border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary focus:border-transparent'
-                    />
-                    <p className='text-sm text-gray-500 mt-1'>How long each appointment will last</p>
                 </div>
 
                 <div className='pt-4'>
